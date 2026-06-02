@@ -311,7 +311,7 @@ func (m *Manager) Activate(ctx context.Context, contextName string) error {
 	go m.healthMonitor(monitorCtx, conn)
 	go m.fetchAndStorePermissions(monitorCtx, contextName, conn)
 	go m.startHealthPoller(monitorCtx, contextName, conn)
-	go m.emitDiscovery(contextName)
+	go m.emitDiscovery(monitorCtx, contextName)
 	go func() {
 		sv, err := conn.Clientset.Discovery().ServerVersion()
 		if err != nil {
@@ -398,8 +398,34 @@ func (m *Manager) IsActivated(contextName string) bool {
 	return false
 }
 
-func (m *Manager) emitDiscovery(contextName string) {
-	resources, err := m.DiscoverResources(contextName)
+// discoverWithRetry runs discover with bounded exponential backoff, returning
+// on the first success. It gives up after attempts tries or when ctx is
+// cancelled, surfacing the last error.
+func discoverWithRetry(ctx context.Context, attempts int, backoff time.Duration, discover func() ([]APIResource, error)) ([]APIResource, error) {
+	var lastErr error
+	for attempt := 1; attempt <= attempts; attempt++ {
+		res, err := discover()
+		if err == nil {
+			return res, nil
+		}
+		lastErr = err
+		if attempt == attempts {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(backoff):
+		}
+		backoff *= 2
+	}
+	return nil, lastErr
+}
+
+func (m *Manager) emitDiscovery(ctx context.Context, contextName string) {
+	resources, err := discoverWithRetry(ctx, 5, 2*time.Second, func() ([]APIResource, error) {
+		return m.DiscoverResources(contextName)
+	})
 	if err != nil {
 		slox.Warn(m.ctx, "resource discovery failed", "context", contextName, "error", err)
 		return
@@ -692,6 +718,10 @@ func (m *Manager) healthMonitor(ctx context.Context, conn *Connection) {
 					c.Status = StatusConnected
 					m.mu.Unlock()
 					m.emitStatus(conn.Name, StatusConnected)
+					// Connection recovered from an error — re-run discovery so
+					// CRDs (and any other resources) added or missed during the
+					// outage are picked up.
+					go m.emitDiscovery(ctx, conn.Name)
 				} else {
 					m.mu.Unlock()
 				}
