@@ -11,6 +11,7 @@ import (
 	"github.com/Vilsol/klados/internal/cluster"
 	"github.com/Vilsol/klados/internal/config"
 	"github.com/Vilsol/klados/internal/session"
+	"github.com/adrg/xdg"
 )
 
 func noopLogger() *slog.Logger {
@@ -223,6 +224,92 @@ func TestRemoveKubeconfigPath_PrunesClusterPrefs(t *testing.T) {
 		_, exists := c.Clusters["second-context"]
 		testza.AssertFalse(t, exists)
 	})
+}
+
+func TestSupersedes(t *testing.T) {
+	newC := map[string]struct{}{"a": {}, "b": {}}
+	testza.AssertTrue(t, supersedes(newC, []string{"a"}))
+	testza.AssertTrue(t, supersedes(newC, []string{"a", "b"}))
+	testza.AssertFalse(t, supersedes(newC, []string{"a", "c"}))
+	testza.AssertFalse(t, supersedes(newC, []string{}))
+}
+
+func importableKubeconfig(ctxName, clusterName, server string) string {
+	return `apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: ` + server + `
+  name: ` + clusterName + `
+contexts:
+- context:
+    cluster: ` + clusterName + `
+    user: ` + ctxName + `-user
+  name: ` + ctxName + `
+users:
+- name: ` + ctxName + `-user
+  user:
+    token: tok
+`
+}
+
+func countImportedPaths(paths []string, dir string) int {
+	n := 0
+	for _, p := range paths {
+		if filepath.Dir(p) == dir {
+			n++
+		}
+	}
+	return n
+}
+
+func TestImportKubeconfigContent_ReplacesSupersededImport(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+	xdg.Reload()
+	importDir := filepath.Join(xdg.ConfigHome, "klados", "kubeconfigs")
+
+	svc, cfg := setupClusterServiceWithConfig(t)
+
+	v1 := importableKubeconfig("imported-ctx", "cluster-v1", "https://127.0.0.1:6443")
+	_, err := svc.ImportKubeconfigContent(v1)
+	testza.AssertNoError(t, err)
+	testza.AssertEqual(t, 1, countImportedPaths(cfg.KubeconfigPaths, importDir))
+
+	// Re-import the same context with updated server — must replace, not duplicate.
+	v2 := importableKubeconfig("imported-ctx", "cluster-v2", "https://127.0.0.2:6443")
+	_, err = svc.ImportKubeconfigContent(v2)
+	testza.AssertNoError(t, err)
+	testza.AssertEqual(t, 1, countImportedPaths(cfg.KubeconfigPaths, importDir))
+
+	info, err := svc.GetClusterInfo("imported-ctx")
+	testza.AssertNoError(t, err)
+	testza.AssertEqual(t, "https://127.0.0.2:6443", info.ServerURL)
+}
+
+func TestImportKubeconfigContent_ReconnectsConnectedContext(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+	xdg.Reload()
+
+	svc, _ := setupClusterServiceWithConfig(t)
+
+	v1 := importableKubeconfig("imported-ctx", "cluster-v1", "https://127.0.0.1:6443")
+	_, err := svc.ImportKubeconfigContent(v1)
+	testza.AssertNoError(t, err)
+
+	testza.AssertNoError(t, svc.manager().Connect(context.Background(), "imported-ctx"))
+	conn, err := svc.manager().GetConnection("imported-ctx")
+	testza.AssertNoError(t, err)
+	testza.AssertEqual(t, "https://127.0.0.1:6443", conn.Config.Host)
+
+	v2 := importableKubeconfig("imported-ctx", "cluster-v2", "https://127.0.0.2:6443")
+	_, err = svc.ImportKubeconfigContent(v2)
+	testza.AssertNoError(t, err)
+
+	conn2, err := svc.manager().GetConnection("imported-ctx")
+	testza.AssertNoError(t, err)
+	testza.AssertEqual(t, "https://127.0.0.2:6443", conn2.Config.Host)
 }
 
 func TestGetClusterInfo_Disconnected(t *testing.T) {

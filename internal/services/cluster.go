@@ -183,20 +183,141 @@ func (c *ClusterService) AddKubeconfigPath(path string) ([]cluster.KubeContext, 
 	return c.manager().ListContexts(), nil
 }
 
+// supersedes reports whether a new import defining newCtxs fully replaces an
+// existing klados-managed kubeconfig defining existingCtxs — i.e. every context
+// in the existing file is also present in the new import. An empty existing set
+// never qualifies.
+func supersedes(newCtxs map[string]struct{}, existingCtxs []string) bool {
+	if len(existingCtxs) == 0 {
+		return false
+	}
+	for _, name := range existingCtxs {
+		if _, ok := newCtxs[name]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func contextNamesFromFile(path string) ([]string, error) {
+	cfg, err := clientcmd.LoadFromFile(path)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(cfg.Contexts))
+	for name := range cfg.Contexts {
+		names = append(names, name)
+	}
+	return names, nil
+}
+
 func (c *ClusterService) ImportKubeconfigContent(content string) ([]cluster.KubeContext, error) {
-	if _, err := clientcmd.Load([]byte(content)); err != nil {
+	parsed, err := clientcmd.Load([]byte(content))
+	if err != nil {
 		return nil, fmt.Errorf("invalid kubeconfig: %w", err)
 	}
+	newCtxs := make(map[string]struct{}, len(parsed.Contexts))
+	for name := range parsed.Contexts {
+		newCtxs[name] = struct{}{}
+	}
+
 	dir := filepath.Join(xdg.ConfigHome, "klados", "kubeconfigs")
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
+
+	// Find prior klados-managed imports this one fully supersedes, so an updated
+	// kubeconfig replaces the stale copy instead of being shadowed by it during
+	// the clientcmd merge.
+	cfg := c.appService.Config()
+	var stalePaths []string
+	cfg.Read(func(cfg *config.Config) {
+		for _, p := range cfg.KubeconfigPaths {
+			if filepath.Dir(p) != dir {
+				continue
+			}
+			existing, err := contextNamesFromFile(p)
+			if err != nil {
+				continue
+			}
+			if supersedes(newCtxs, existing) {
+				stalePaths = append(stalePaths, p)
+			}
+		}
+	})
+
 	sum := sha256.Sum256([]byte(content))
 	path := filepath.Join(dir, fmt.Sprintf("%x", sum[:4])+".yaml")
 	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 		return nil, err
 	}
-	return c.AddKubeconfigPath(path)
+
+	if len(stalePaths) > 0 {
+		if err := cfg.Update(func(cfg *config.Config) {
+			kept := make([]string, 0, len(cfg.KubeconfigPaths))
+			for _, p := range cfg.KubeconfigPaths {
+				if !contains(stalePaths, p) {
+					kept = append(kept, p)
+				}
+			}
+			cfg.KubeconfigPaths = kept
+		}); err != nil {
+			return nil, err
+		}
+		for _, sp := range stalePaths {
+			if sp != path {
+				if err := os.Remove(sp); err != nil && !os.IsNotExist(err) {
+					slox.Warn(c.ctx, "import: removing superseded kubeconfig failed", "path", sp, "error", err)
+				}
+			}
+		}
+	}
+
+	// Snapshot which imported contexts are currently connected (and whether they
+	// were activated) so we can reconnect them with the refreshed credentials.
+	reactivate := map[string]bool{}
+	var reconnect []string
+	for name := range newCtxs {
+		if _, err := c.manager().GetConnection(name); err == nil {
+			reconnect = append(reconnect, name)
+			reactivate[name] = c.manager().IsActivated(name)
+		}
+	}
+
+	contexts, err := c.AddKubeconfigPath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, name := range reconnect {
+		if err := c.manager().Disconnect(name); err != nil {
+			slox.Warn(c.ctx, "import: reconnect disconnect failed", "context", name, "error", err)
+			continue
+		}
+		if err := c.manager().Connect(c.ctx, name); err != nil {
+			slox.Warn(c.ctx, "import: reconnect connect failed", "context", name, "error", err)
+			continue
+		}
+		if reactivate[name] {
+			if err := c.manager().Activate(c.ctx, name); err != nil {
+				slox.Warn(c.ctx, "import: reconnect activate failed", "context", name, "error", err)
+			}
+		}
+	}
+	if len(reconnect) > 0 {
+		contexts = c.manager().ListContexts()
+	}
+
+	return contexts, nil
+}
+
+func contains(s []string, v string) bool {
+	for _, x := range s {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *ClusterService) RemoveKubeconfigPath(path string) ([]cluster.KubeContext, error) {
