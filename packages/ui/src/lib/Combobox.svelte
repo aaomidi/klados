@@ -190,7 +190,7 @@
           >
             <span
               class="shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors
-                {!hasSelection ? 'bg-accent border-accent text-bg' : 'border-border'}"
+                {!hasSelection ? 'bg-accent border-accent text-bg' : 'border-muted'}"
             >
               {#if !hasSelection}<Check size={10} />{/if}
             </span>
@@ -210,7 +210,7 @@
               {#if type === 'multiple'}
                 <span
                   class="shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors
-                    {selected ? 'bg-accent border-accent text-bg' : 'border-border'}"
+                    {selected ? 'bg-accent border-accent text-bg' : 'border-muted'}"
                 >
                   {#if selected}<Check size={10} />{/if}
                 </span>

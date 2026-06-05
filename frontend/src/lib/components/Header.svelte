@@ -69,7 +69,7 @@
   </div>
 
   {#if ctx && nsOptions.length > 0}
-    <div class="w-48 ml-2">
+    <div class="w-64 ml-2">
       <Combobox
         type="multiple"
         options={nsOptions}
@@ -77,7 +77,7 @@
         allLabel="All Namespaces"
         placeholder="All Namespaces"
         searchPlaceholder="Search namespaces…"
-        size="xs"
+        size="sm"
         onValueChange={onNamespaceChange}
       />
     </div>
