@@ -67,8 +67,8 @@
                 # versions produce different `pnpm fetch` outputs).
                 pnpmDeps = fetchPnpmDeps {
                   inherit (finalAttrs) pname version src;
-                  hash = "sha256-YgQKR1XnmsvLNVrchugOWZRBGbqN+teJ0lTLEQuCk2s=";
-                  fetcherVersion = 2;
+                  hash = "sha256-duoTavVxrB8evtOiq0ell+qwL1JPaimdicb4xmsG4L4=";
+                  fetcherVersion = 3;
                   pnpm = pnpm_10;
                 };
 
