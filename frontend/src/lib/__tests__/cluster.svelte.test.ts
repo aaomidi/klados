@@ -30,6 +30,10 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/appservice
 vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
   GetConfig: vi.fn().mockResolvedValue({readOnly: false}),
 }));
+vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+  StartWatch: vi.fn().mockResolvedValue(undefined),
+  StopWatch: vi.fn().mockResolvedValue(undefined),
+}));
 
 import {
   ListContexts,
@@ -40,6 +44,8 @@ import {
   ListNamespaces,
 } from "../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice";
 import {SetLastActiveContext} from "../../../bindings/github.com/Vilsol/klados/internal/services/appservice";
+import {StartWatch, StopWatch} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice";
+import {Events} from "@wailsio/runtime";
 
 const mockedListContexts = vi.mocked(ListContexts);
 const mockedConnect = vi.mocked(Connect);
@@ -48,9 +54,25 @@ const mockedActivate = vi.mocked(Activate);
 const mockedDeactivate = vi.mocked(Deactivate);
 const mockedSetLastActive = vi.mocked(SetLastActiveContext);
 const mockedListNamespaces = vi.mocked(ListNamespaces);
+const mockedStartWatch = vi.mocked(StartWatch);
+const mockedStopWatch = vi.mocked(StopWatch);
+const mockedEventsOn = vi.mocked(Events.On);
+
+// Find the namespace-watch event handler registered for a context and invoke it
+// with a synthetic Wails event payload.
+function emitNamespaceWatch(ctx: string, type: string, name: string) {
+  const eventName = `watch:${ctx}:core.v1.namespaces:`;
+  const call = mockedEventsOn.mock.calls.find((c) => c[0] === eventName);
+  if (!call) throw new Error(`no handler registered for ${eventName}`);
+  const handler = call[1] as (e: unknown) => void;
+  handler({data: {type, object: {metadata: {name}}}});
+}
 
 describe("clusterStore", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Tear down any namespace watch left active by the previous test before
+    // clearing mock call history.
+    await clusterStore.setActiveContext(null);
     vi.clearAllMocks();
     clusterStore.contexts = [];
     clusterStore.activeContext = null;
@@ -156,6 +178,41 @@ describe("clusterStore", () => {
     await clusterStore.disconnect("ctx1");
 
     expect(clusterStore.activeContext).toBe("ctx2");
+  });
+
+  it("setActiveContext starts a namespace watch for the new context", async () => {
+    mockedListNamespaces.mockResolvedValue(["default"] as never);
+
+    await clusterStore.setActiveContext("ctx1");
+
+    expect(mockedStartWatch).toHaveBeenCalledWith("ctx1", "core.v1.namespaces", "", "");
+  });
+
+  it("namespace ADDED watch event adds to the dropdown list", async () => {
+    mockedListNamespaces.mockResolvedValue(["default"] as never);
+    await clusterStore.setActiveContext("ctx1");
+
+    emitNamespaceWatch("ctx1", "ADDED", "new-ns");
+
+    expect(clusterStore.getNamespaces("ctx1")).toContain("new-ns");
+  });
+
+  it("namespace DELETED watch event removes from the dropdown list", async () => {
+    mockedListNamespaces.mockResolvedValue(["default", "doomed"] as never);
+    await clusterStore.setActiveContext("ctx1");
+
+    emitNamespaceWatch("ctx1", "DELETED", "doomed");
+
+    expect(clusterStore.getNamespaces("ctx1")).not.toContain("doomed");
+  });
+
+  it("switching active context stops the previous namespace watch", async () => {
+    mockedListNamespaces.mockResolvedValue([] as never);
+    await clusterStore.setActiveContext("ctx1");
+    await clusterStore.setActiveContext("ctx2");
+
+    expect(mockedStopWatch).toHaveBeenCalledWith("ctx1", "core.v1.namespaces", "");
+    expect(mockedStartWatch).toHaveBeenCalledWith("ctx2", "core.v1.namespaces", "", "");
   });
 
   it("setNamespaces updates selected namespaces per context", async () => {

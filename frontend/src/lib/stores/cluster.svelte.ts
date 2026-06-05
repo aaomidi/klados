@@ -12,6 +12,7 @@ import {
   GetActiveNamespace,
 } from "../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice.js";
 import {SetReadOnly, SetLastActiveContext} from "../../../bindings/github.com/Vilsol/klados/internal/services/appservice.js";
+import {StartWatch, StopWatch} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
 import {GetConfig} from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
 import {getLogger} from "$lib/logger";
 import {preferencesStore} from "./preferences.svelte";
@@ -56,6 +57,9 @@ class ClusterStore {
   private statusUnsubs: Array<() => void> = [];
   private metaUnsubs: Array<() => void> = [];
   private permUnsubs: Array<() => void> = [];
+  // Live watch on the active context's namespaces so the header dropdown
+  // reflects namespaces added/removed out-of-band (kubectl, other tools).
+  private nsWatch: {ctx: string; unsub: () => void} | null = null;
 
   /** Returns false when either the global read-only toggle is on or detected RBAC permits no writes. */
   canMutate(): boolean {
@@ -112,6 +116,9 @@ class ClusterStore {
       } catch (e) {
         log.warn("Activate failed", {ctxName, error: String(e)});
       }
+      await this.startNamespaceWatch(ctxName);
+    } else {
+      this.stopNamespaceWatch();
     }
     try {
       await SetLastActiveContext(ctxName ?? "");
@@ -190,7 +197,7 @@ class ClusterStore {
         } catch (e) {
           log.debug("Could not restore saved namespace", {error: String(e)});
         }
-        await this.loadNamespaces(this.activeContext);
+        await this.startNamespaceWatch(this.activeContext);
       }
     } catch (e) {
       log.error("Failed to load contexts", {error: String(e)});
@@ -207,7 +214,7 @@ class ClusterStore {
     } catch (e) {
       log.debug("Could not restore saved namespace", {error: String(e)});
     }
-    await this.loadNamespaces(ctxName);
+    await this.startNamespaceWatch(ctxName);
   }
 
   async connect(ctxName: string) {
@@ -246,6 +253,46 @@ class ClusterStore {
     } catch (e) {
       log.error("Failed to load namespaces", {error: String(e)});
     }
+  }
+
+  /**
+   * Load the namespace list for ctxName and keep it live via a watch on
+   * core.v1.namespaces, so namespaces created/deleted outside the app update the
+   * header dropdown. Idempotent for the already-watched context.
+   */
+  private async startNamespaceWatch(ctxName: string) {
+    if (this.nsWatch?.ctx === ctxName) return;
+    this.stopNamespaceWatch();
+
+    await this.loadNamespaces(ctxName);
+
+    const eventName = `watch:${ctxName}:core.v1.namespaces:`;
+    const unsub = Events.On(eventName, (wailsEvent: unknown) => {
+      const event = (wailsEvent as {data?: {type: string; object?: {metadata?: {name?: string}}}})?.data;
+      const name = event?.object?.metadata?.name;
+      if (!event || !name) return;
+      const current = this.namespaces[ctxName] ?? [];
+      if (event.type === "DELETED") {
+        this.namespaces[ctxName] = current.filter((n) => n !== name);
+      } else if (!current.includes(name)) {
+        this.namespaces[ctxName] = [...current, name].sort();
+      }
+    });
+    this.nsWatch = {ctx: ctxName, unsub};
+
+    // resourceVersion "" replays existing namespaces as ADDED (idempotent) and
+    // then streams subsequent changes.
+    StartWatch(ctxName, "core.v1.namespaces", "", "").catch((e) =>
+      log.warn("namespace watch start failed", {ctxName, error: String(e)}),
+    );
+  }
+
+  private stopNamespaceWatch() {
+    if (!this.nsWatch) return;
+    const {ctx, unsub} = this.nsWatch;
+    this.nsWatch = null;
+    unsub();
+    StopWatch(ctx, "core.v1.namespaces", "").catch((e) => log.warn("namespace watch stop failed", {ctx, error: String(e)}));
   }
 
   async createNamespace(ctxName: string, name: string) {
