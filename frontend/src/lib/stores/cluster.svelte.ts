@@ -57,6 +57,7 @@ class ClusterStore {
   private statusUnsubs: Array<() => void> = [];
   private metaUnsubs: Array<() => void> = [];
   private permUnsubs: Array<() => void> = [];
+  private kubeconfigsUnsub: (() => void) | null = null;
   // Live watch on the active context's namespaces so the header dropdown
   // reflects namespaces added/removed out-of-band (kubectl, other tools).
   private nsWatch: {ctx: string; unsub: () => void} | null = null;
@@ -138,6 +139,11 @@ class ClusterStore {
   }
 
   async loadContexts() {
+    if (!this.kubeconfigsUnsub) {
+      this.kubeconfigsUnsub = Events.On("kubeconfigs:updated", () => {
+        this.loadContexts();
+      });
+    }
     try {
       const result = await ListContexts();
       this.contexts = result ?? [];

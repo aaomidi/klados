@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/Vilsol/slox"
+	"github.com/adrg/xdg"
 	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/Vilsol/klados/internal/cluster"
@@ -70,6 +72,16 @@ func (a *AppService) ServiceStartup(ctx context.Context, options application.Ser
 
 	if err := a.clusterMgr.LoadKubeconfigs(a.config.KubeconfigPaths); err != nil {
 		slox.Warn(a.ctx, "failed to load kubeconfigs", "error", err)
+	}
+
+	importsDir := filepath.Join(xdg.ConfigHome, "klados", "kubeconfigs")
+	extraPaths := func() []string {
+		var p []string
+		a.config.Read(func(c *config.Config) { p = append(p, c.KubeconfigPaths...) })
+		return p
+	}
+	if err := a.clusterMgr.WatchKubeconfigs(a.ctx, importsDir, extraPaths, a.reconnectChangedContexts); err != nil {
+		slox.Warn(a.ctx, "kubeconfig file watching unavailable", "error", err)
 	}
 
 	if last := a.session.LastActiveContext; last != "" {
@@ -270,4 +282,30 @@ func (a *AppService) GetClusterHealth(ctx context.Context, connCtx string) (clus
 		return cluster.ClusterHealth{}, fmt.Errorf("not connected to %q", connCtx)
 	}
 	return cluster.CheckHealth(ctx, conn), nil
+}
+
+// reconnectChangedContexts refreshes live connections whose kubeconfig entry
+// changed on disk (cert rotation, server change). Disconnect fires the watch
+// teardown hooks; the frontend re-lists on the status events.
+func (a *AppService) reconnectChangedContexts(names []string) {
+	for _, name := range names {
+		if _, err := a.clusterMgr.GetConnection(name); err != nil {
+			continue // not connected — nothing to refresh
+		}
+		activated := a.clusterMgr.IsActivated(name)
+		slox.Info(a.ctx, "kubeconfig changed on disk, reconnecting", "context", name)
+		if err := a.clusterMgr.Disconnect(name); err != nil {
+			slox.Warn(a.ctx, "reconnect: disconnect failed", "context", name, "error", err)
+			continue
+		}
+		if err := a.clusterMgr.Connect(a.ctx, name); err != nil {
+			slox.Warn(a.ctx, "reconnect: connect failed", "context", name, "error", err)
+			continue
+		}
+		if activated {
+			if err := a.clusterMgr.Activate(a.ctx, name); err != nil {
+				slox.Warn(a.ctx, "reconnect: activate failed", "context", name, "error", err)
+			}
+		}
+	}
 }

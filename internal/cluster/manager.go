@@ -111,6 +111,9 @@ type Manager struct {
 	discoveryInFlight   map[string]bool
 	onDisconnect        []func(string)
 	onRecovery          []func(string)
+	// reloadMu serializes reloadAfterFileChange (kubeconfig_watch.go) —
+	// separate from mu because it's held across slow reconnect callbacks.
+	reloadMu deadlock.Mutex
 }
 
 func NewManager(emitEvent func(string, any), cfg *config.Config, ctx context.Context) *Manager {
@@ -245,7 +248,8 @@ func (m *Manager) Connect(ctx context.Context, contextName string) error {
 		return fmt.Errorf("kubeconfigs not loaded")
 	}
 
-	rawCtx, ok := m.rawConfig.Contexts[contextName]
+	rawCfg := m.rawConfig
+	rawCtx, ok := rawCfg.Contexts[contextName]
 	if !ok {
 		m.mu.Unlock()
 		return fmt.Errorf("context %q not found", contextName)
@@ -254,7 +258,7 @@ func (m *Manager) Connect(ctx context.Context, contextName string) error {
 
 	m.emitStatus(contextName, StatusConnecting)
 
-	clientCfg := clientcmd.NewDefaultClientConfig(*m.rawConfig, &clientcmd.ConfigOverrides{
+	clientCfg := clientcmd.NewDefaultClientConfig(*rawCfg, &clientcmd.ConfigOverrides{
 		CurrentContext: contextName,
 	})
 
