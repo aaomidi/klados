@@ -3,8 +3,6 @@ package services
 import (
 	"context"
 
-	"github.com/wailsapp/wails/v3/pkg/application"
-
 	"github.com/Vilsol/klados/internal/exec"
 )
 
@@ -18,13 +16,13 @@ func NewExecService(appSvc *AppService) *ExecService {
 	return &ExecService{appService: appSvc}
 }
 
-func (s *ExecService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *ExecService) Startup(ctx context.Context) error {
 	s.ctx = ctx
 	s.manager = s.appService.ExecManager()
 	return nil
 }
 
-func (s *ExecService) ServiceShutdown() error {
+func (s *ExecService) Shutdown() error {
 	if s.manager != nil {
 		s.manager.StopAll()
 	}

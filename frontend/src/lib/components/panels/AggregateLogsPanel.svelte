@@ -1,8 +1,8 @@
 <script lang="ts">
   import {onDestroy, untrack} from "svelte";
-  import {ListResources} from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-  import {StartLogStream, StopLogStream} from "../../../../bindings/github.com/Vilsol/klados/internal/services/logservice.js";
-  import {LogOptions} from "../../../../bindings/github.com/Vilsol/klados/internal/logs/models.js";
+  import {ListResources} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {StartLogStream, StopLogStream} from "$api/github.com/Vilsol/klados/internal/services/logservice.js";
+  import {LogOptions} from "$api/github.com/Vilsol/klados/internal/logs/models.js";
   import {streamingStore} from "$lib/stores/streaming.svelte";
   import {sessionStore} from "$lib/stores/session.svelte";
   import {AggregateLogStore} from "$lib/stores/aggregate-logs.svelte";
@@ -112,7 +112,7 @@
         );
         streamIds.push(id);
 
-        const ws = new WebSocket(`ws://127.0.0.1:${streamingStore.config?.port}/${streamingStore.config?.token}/ws/logs/${id}`);
+        const ws = new WebSocket(streamingStore.logStreamUrl(id));
 
         store.addStream(podName, id, ws);
 

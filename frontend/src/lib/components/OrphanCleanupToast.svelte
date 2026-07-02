@@ -6,9 +6,9 @@
   import {
     CleanupOrphans,
     TriggerOrphanScan,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/volumebrowserservice.js";
-  import type {OrphanPodDTO} from "../../../bindings/github.com/Vilsol/klados/internal/services/models.js";
-  import {ConnectionStatus} from "../../../bindings/github.com/Vilsol/klados/internal/cluster/models.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/volumebrowserservice.js";
+  import type {OrphanPodDTO} from "$api/github.com/Vilsol/klados/internal/services/models.js";
+  import {ConnectionStatus} from "$api/github.com/Vilsol/klados/internal/cluster/models.js";
   import {getLogger} from "$lib/logger";
 
   const log = getLogger("volumebrowser.orphans");

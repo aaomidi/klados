@@ -2,7 +2,7 @@ import {describe, it, expect, beforeEach, afterEach, vi} from "vitest";
 import {render, screen, waitFor, cleanup} from "@testing-library/svelte";
 import {tick} from "svelte";
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   CreateResource: vi.fn().mockResolvedValue({}),
   GetTemplates: vi
     .fn()
@@ -12,7 +12,7 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourcese
   GetAllTemplateGVRs: vi.fn().mockResolvedValue(["core.v1.pods", "apps.v1.deployments"]),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/schemaservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/schemaservice.js", () => ({
   GetSchema: vi.fn().mockResolvedValue({}),
 }));
 

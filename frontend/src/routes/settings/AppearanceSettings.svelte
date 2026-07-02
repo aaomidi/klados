@@ -4,7 +4,7 @@
     SetAccentColor,
     SetCompactRows,
     SetContextualAutocomplete,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
   import {preferencesStore} from "$lib/stores/preferences.svelte";
 
   const presetColors = ["#6366f1", "#8b5cf6", "#ec4899", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4"];

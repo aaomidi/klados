@@ -5,7 +5,7 @@ import {clusterStore} from "$lib/stores/cluster.svelte";
 import {setTheme, getTheme} from "$lib/theme.svelte";
 
 // Mock the bindings used transitively
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/clusterservice", () => ({
   ListContexts: vi.fn().mockResolvedValue([]),
   Connect: vi.fn().mockResolvedValue(undefined),
   Disconnect: vi.fn().mockResolvedValue(undefined),

@@ -3,7 +3,7 @@ import {render, screen, fireEvent} from "@testing-library/svelte";
 import type {DescriptorDef} from "$lib/registry/index";
 
 // Mock all service bindings used by child components
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   GetEvents: vi.fn().mockResolvedValue([]),
   StartWatch: vi.fn().mockResolvedValue(undefined),
   StopWatch: vi.fn().mockResolvedValue(undefined),
@@ -22,7 +22,7 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourcese
   ResumeCronJob: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/drainservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/drainservice.js", () => ({
   StartDrain: vi.fn().mockResolvedValue(undefined),
   CancelDrain: vi.fn().mockResolvedValue(undefined),
   CordonNode: vi.fn().mockResolvedValue(undefined),
@@ -31,7 +31,7 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/drainservi
   ListActive: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/schemaservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/schemaservice.js", () => ({
   GetSchema: vi.fn().mockResolvedValue({}),
 }));
 

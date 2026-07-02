@@ -1,11 +1,11 @@
-import type { APIResource } from "../../../bindings/github.com/Vilsol/klados/internal/cluster/index.js";
+import type { APIResource } from "$api/github.com/Vilsol/klados/internal/cluster/index.js";
 import {
   Descriptor,
   Column,
   Action,
   OverviewField,
   RenderType as BindingRenderType,
-} from "../../../bindings/github.com/Vilsol/klados/internal/resource/index.js";
+} from "$api/github.com/Vilsol/klados/internal/resource/index.js";
 
 export type RenderType = BindingRenderType;
 

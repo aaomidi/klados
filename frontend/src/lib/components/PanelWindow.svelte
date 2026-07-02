@@ -6,8 +6,8 @@
   import TerminalPanel from "./panels/TerminalPanel.svelte";
   import AggregateLogsPanel from "./panels/AggregateLogsPanel.svelte";
   import {YAMLEditor} from "@klados/ui";
-  import {UpdateResource, GetResource} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-  import {GetSchema} from "../../../bindings/github.com/Vilsol/klados/internal/services/schemaservice.js";
+  import {UpdateResource, GetResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetSchema} from "$api/github.com/Vilsol/klados/internal/services/schemaservice.js";
   import {notificationStore} from "$lib/stores/notification.svelte.js";
   import {shortcutStore} from "$lib/stores/shortcuts.svelte.js";
   import {unwrapError} from "$lib/utils/async.js";

@@ -3,8 +3,6 @@ package services
 import (
 	"context"
 
-	"github.com/wailsapp/wails/v3/pkg/application"
-
 	"github.com/Vilsol/klados/internal/logs"
 )
 
@@ -18,13 +16,13 @@ func NewLogService(appSvc *AppService) *LogService {
 	return &LogService{appService: appSvc}
 }
 
-func (s *LogService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *LogService) Startup(ctx context.Context) error {
 	s.ctx = ctx
 	s.streamer = s.appService.LogStreamer()
 	return nil
 }
 
-func (s *LogService) ServiceShutdown() error {
+func (s *LogService) Shutdown() error {
 	if s.streamer != nil {
 		s.streamer.StopAll()
 	}

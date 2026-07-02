@@ -1,13 +1,13 @@
 <script lang="ts">
   import {onMount} from "svelte";
   import {push} from "svelte-spa-router";
-  import {GetClusterPrefs, SetClusterPrefs} from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
-  import {ClusterPrefs, MetricsConfig} from "../../../bindings/github.com/Vilsol/klados/internal/config/models.js";
+  import {GetClusterPrefs, SetClusterPrefs} from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
+  import {ClusterPrefs, MetricsConfig} from "$api/github.com/Vilsol/klados/internal/config/models.js";
   import type {VolumeBrowserConfig as VBConfig} from "$lib/stores/preferences.svelte";
   import VolumeBrowserSettings from "./VolumeBrowserSettings.svelte";
-  import {Disconnect, GetClusterInfo, RemoveKubeconfigPath} from "../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice.js";
-  import type {ClusterInfo} from "../../../bindings/github.com/Vilsol/klados/internal/services/models.js";
-  import {ConnectionStatus} from "../../../bindings/github.com/Vilsol/klados/internal/cluster/models.js";
+  import {Disconnect, GetClusterInfo, RemoveKubeconfigPath} from "$api/github.com/Vilsol/klados/internal/services/clusterservice.js";
+  import type {ClusterInfo} from "$api/github.com/Vilsol/klados/internal/services/models.js";
+  import {ConnectionStatus} from "$api/github.com/Vilsol/klados/internal/cluster/models.js";
   import {ConfirmDialog} from "@klados/ui";
   import {clusterStore} from "$lib/stores/cluster.svelte.js";
 

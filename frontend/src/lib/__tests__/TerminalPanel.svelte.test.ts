@@ -11,16 +11,16 @@ const {mockOpenExecSession, mockCloseExecSession, mockStop, mockReplace, mockSpa
   mockGetResource: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/execservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/execservice.js", () => ({
   OpenExecSession: mockOpenExecSession,
   CloseExecSession: mockCloseExecSession,
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   GetResource: (...a: unknown[]) => mockGetResource(...a),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/volumebrowserservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/volumebrowserservice.js", () => ({
   Stop: (...a: unknown[]) => mockStop(...a),
   Replace: (...a: unknown[]) => mockReplace(...a),
   Spawn: (...a: unknown[]) => mockSpawn(...a),

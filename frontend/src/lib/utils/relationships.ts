@@ -5,7 +5,7 @@ export interface ControllerRef {
   uid: string;
 }
 
-import type { APIResource } from "../../../bindings/github.com/Vilsol/klados/internal/cluster/index.js";
+import type { APIResource } from "$api/github.com/Vilsol/klados/internal/cluster/index.js";
 export type { APIResource };
 
 export function getControllerRef(obj: unknown): ControllerRef | null {

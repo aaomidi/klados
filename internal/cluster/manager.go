@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"github.com/sasha-s/go-deadlock"
 	"time"
@@ -214,8 +215,54 @@ func (m *Manager) LoadKubeconfigs(extraPaths []string) error {
 		m.contexts = append(m.contexts, kc)
 	}
 
+	if inClusterAvailable() {
+		found := false
+		for _, kc := range m.contexts {
+			if kc.Name == InClusterContextName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			kc := KubeContext{
+				Name:      InClusterContextName,
+				Cluster:   InClusterContextName,
+				User:      "serviceaccount",
+				Namespace: inClusterNamespace(),
+				Status:    StatusDisconnected,
+			}
+			if conn, ok := m.connections[InClusterContextName]; ok {
+				kc.Status = conn.Status
+			}
+			m.contexts = append(m.contexts, kc)
+		}
+	}
+
 	slox.Info(m.ctx, "loaded kubeconfigs", "contexts", len(m.contexts))
 	return nil
+}
+
+// InClusterContextName is the synthetic context exposed when the server runs
+// inside a Kubernetes pod with a mounted ServiceAccount.
+const InClusterContextName = "in-cluster"
+
+func inClusterAvailable() bool {
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		return false
+	}
+	_, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	return err == nil
+}
+
+func inClusterNamespace() string {
+	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return "default"
+	}
+	if ns := strings.TrimSpace(string(data)); ns != "" {
+		return ns
+	}
+	return "default"
 }
 
 func (m *Manager) ListContexts() []KubeContext {
@@ -243,26 +290,44 @@ func (m *Manager) Connect(ctx context.Context, contextName string) error {
 		return nil
 	}
 
-	if m.rawConfig == nil {
-		m.mu.Unlock()
-		return fmt.Errorf("kubeconfigs not loaded")
-	}
-
-	rawCfg := m.rawConfig
-	rawCtx, ok := rawCfg.Contexts[contextName]
-	if !ok {
-		m.mu.Unlock()
-		return fmt.Errorf("context %q not found", contextName)
+	inCluster := contextName == InClusterContextName && inClusterAvailable()
+	var rawCtx *clientcmdapi.Context
+	// rawCfg is captured under the lock so a concurrent reload (kubeconfig
+	// watch) can't swap m.rawConfig out from under us after we unlock.
+	var rawCfg *clientcmdapi.Config
+	if inCluster {
+		rawCtx = &clientcmdapi.Context{
+			Cluster:   InClusterContextName,
+			AuthInfo:  "serviceaccount",
+			Namespace: inClusterNamespace(),
+		}
+	} else {
+		if m.rawConfig == nil {
+			m.mu.Unlock()
+			return fmt.Errorf("kubeconfigs not loaded")
+		}
+		rawCfg = m.rawConfig
+		var ok bool
+		rawCtx, ok = rawCfg.Contexts[contextName]
+		if !ok {
+			m.mu.Unlock()
+			return fmt.Errorf("context %q not found", contextName)
+		}
 	}
 	m.mu.Unlock()
 
 	m.emitStatus(contextName, StatusConnecting)
 
-	clientCfg := clientcmd.NewDefaultClientConfig(*rawCfg, &clientcmd.ConfigOverrides{
-		CurrentContext: contextName,
-	})
-
-	restCfg, err := clientCfg.ClientConfig()
+	var restCfg *rest.Config
+	var err error
+	if inCluster {
+		restCfg, err = rest.InClusterConfig()
+	} else {
+		clientCfg := clientcmd.NewDefaultClientConfig(*rawCfg, &clientcmd.ConfigOverrides{
+			CurrentContext: contextName,
+		})
+		restCfg, err = clientCfg.ClientConfig()
+	}
 	if err != nil {
 		m.emitStatus(contextName, StatusError)
 		return fmt.Errorf("building rest config for %q: %w", contextName, err)

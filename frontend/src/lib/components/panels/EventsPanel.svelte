@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {GetEvents, StartWatch, StopWatch} from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetEvents, StartWatch, StopWatch} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {Events as WailsEvents} from "@wailsio/runtime";
   import {formatAge} from "$lib/utils/age";
   import EventTypeBadge from "$lib/event/EventTypeBadge.svelte";

@@ -65,7 +65,7 @@ vi.mock("$lib/stores/selection.svelte", () => ({
   },
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   DeleteResource: vi.fn(),
   ListResources: vi.fn().mockResolvedValue([]),
 }));

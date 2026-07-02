@@ -5,7 +5,7 @@ const {mockGetResource} = vi.hoisted(() => ({
   mockGetResource: vi.fn(),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({GetResource: mockGetResource}));
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({GetResource: mockGetResource}));
 
 vi.mock("@klados/ui", () => ({
   SectionHeader: vi.fn(),

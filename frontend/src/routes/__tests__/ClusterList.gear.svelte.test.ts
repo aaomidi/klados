@@ -29,13 +29,13 @@ vi.mock("$lib/components/KubeconfigImportDialog.svelte", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../../bindings/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
   GetColumnPrefs: vi.fn().mockResolvedValue(null),
   SetColumnPrefs: vi.fn().mockResolvedValue(undefined),
   DeleteColumnPrefs: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../bindings/github.com/Vilsol/klados/internal/config/models.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/config/models.js", () => ({
   GVRColumnPrefs: vi.fn(),
   ColumnSettings: vi.fn(),
   SortPrefs: vi.fn(),

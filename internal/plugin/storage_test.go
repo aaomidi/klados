@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/MarvinJWendt/testza"
+	"github.com/adrg/xdg"
 
 	"github.com/Vilsol/klados/internal/plugin"
 )
@@ -29,9 +30,7 @@ func newTestStorage(t *testing.T) *plugin.PluginStorage {
 
 // storagePathForName mirrors the internal path construction for test cleanup.
 func storagePathForName(name string) string {
-	// best-effort; xdg.DataHome is resolved at runtime
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".local", "share", "klados", "plugins", name, "storage.json")
+	return filepath.Join(xdg.DataHome, "klados", "plugins", name, "storage.json")
 }
 
 func TestPluginStorage_GetSetDelete(t *testing.T) {

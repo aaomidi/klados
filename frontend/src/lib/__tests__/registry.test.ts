@@ -3,11 +3,11 @@ import {describe, it, expect, vi, beforeEach} from "vitest";
 const mockGetDescriptors = vi.hoisted(() => vi.fn());
 const mockGetPluginDescriptors = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   GetDescriptors: mockGetDescriptors,
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/pluginservice.js", () => ({
   GetPluginDescriptors: mockGetPluginDescriptors,
 }));
 

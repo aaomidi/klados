@@ -296,6 +296,11 @@ func (m *WatchManager) processEvents(
 				}
 			}
 
+			// managedFields is often the largest part of an object and the
+			// list/watch UI never reads it; the detail view re-fetches via
+			// Get, which keeps the full object.
+			unstructured.RemoveNestedField(obj.Object, "metadata", "managedFields")
+
 			m.emitEvent(eventName, WatchEvent{
 				Type:   string(event.Type),
 				Object: obj.Object,

@@ -20,7 +20,11 @@ const {mockListSaved, mockListForwards, mockSetEnabled, mockRemove, mockSavePort
   }),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/portforwardservice.js", () => ({
+vi.mock("$lib/stores/capabilities.svelte.js", () => ({
+  capabilitiesStore: {portForwarding: true, osWindows: true, nativeDialogs: true, mode: "desktop", loaded: true},
+}));
+
+vi.mock("$api/github.com/Vilsol/klados/internal/services/portforwardservice.js", () => ({
   ListSavedPortForwards: mockListSaved,
   ListForwards: mockListForwards,
   SetPortForwardEnabled: mockSetEnabled,
@@ -30,7 +34,7 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/portforwar
   StopForward: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/config/models.js", () => {
+vi.mock("$api/github.com/Vilsol/klados/internal/config/models.js", () => {
   const makeModel = () => vi.fn().mockImplementation((obj: unknown) => obj);
   const makeModelWithCreateFrom = () => {
     const M = vi.fn().mockImplementation((obj: unknown) => obj) as unknown as {createFrom: ReturnType<typeof vi.fn>};

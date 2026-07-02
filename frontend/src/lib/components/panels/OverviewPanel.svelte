@@ -11,7 +11,7 @@
   import OwnerChain from "./OwnerChain.svelte";
   import {loadPluginComponent} from "$lib/plugins/loader.js";
   import {streamingStore} from "$lib/stores/streaming.svelte.js";
-  import {UpdateResource} from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {UpdateResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import PortForwardDialog from "$lib/components/PortForwardDialog.svelte";
   import PortButton from "$lib/components/PortButton.svelte";
@@ -39,9 +39,7 @@
     onopenresource?: (gvr: string, namespace: string, name: string) => void;
   } = $props();
 
-  const basePluginURL = $derived(
-    streamingStore.config ? `http://127.0.0.1:${streamingStore.config.port}/${streamingStore.config.token}/plugins` : null,
-  );
+  const basePluginURL = $derived(streamingStore.config ? streamingStore.pluginsBaseUrl() : null);
 
   function getRawValue(expr: string): string {
     const raw = evalExpr(expr, obj);

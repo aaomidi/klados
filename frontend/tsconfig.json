@@ -10,8 +10,10 @@
     "checkJs": true,
     "isolatedModules": true,
     "paths": {
-      "$lib/*": ["./src/lib/*"]
+      "$lib/*": ["./src/lib/*"],
+      "$api/*": ["./src/api/*"],
+      "@wailsio/runtime": ["./src/lib/transport/wails-runtime.ts"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "bindings"]
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
 }

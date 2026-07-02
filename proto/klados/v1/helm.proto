@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// HelmService mirrors internal/services.HelmService.
+service HelmService {
+  rpc Rollback(HelmRollbackRequest) returns (EmptyResponse);
+  rpc Uninstall(HelmUninstallRequest) returns (EmptyResponse);
+  rpc Test(HelmTestRequest) returns (JsonResponse);
+  rpc ForceDeleteReleaseSecret(HelmRevisionRequest) returns (EmptyResponse);
+  rpc GetValues(HelmGetValuesRequest) returns (HelmTextResponse);
+  rpc GetManifest(HelmRevisionRequest) returns (HelmTextResponse);
+  rpc GetHistory(HelmReleaseRequest) returns (JsonResponse);
+  rpc GetNotes(HelmRevisionRequest) returns (HelmTextResponse);
+  rpc GetHooks(HelmRevisionRequest) returns (JsonResponse);
+  rpc GetOwnedResources(HelmGetOwnedResourcesRequest) returns (JsonResponse);
+  rpc DiffRevisions(HelmDiffRevisionsRequest) returns (JsonResponse);
+  rpc GetReleasePermissions(HelmReleaseRequest) returns (JsonResponse);
+  rpc CleanupTestPods(HelmReleaseRequest) returns (EmptyResponse);
+}
+
+message HelmReleaseRequest {
+  string context = 1;
+  string namespace = 2;
+  string release_name = 3;
+}
+
+message HelmRevisionRequest {
+  string context = 1;
+  string namespace = 2;
+  string release_name = 3;
+  int32 revision = 4;
+}
+
+message HelmRollbackRequest {
+  string context = 1;
+  string namespace = 2;
+  string release_name = 3;
+  int32 revision = 4;
+  bool wait = 5;
+  int32 timeout = 6;
+  bool disable_hooks = 7;
+}
+
+message HelmUninstallRequest {
+  string context = 1;
+  string namespace = 2;
+  string release_name = 3;
+  bool wait = 4;
+  int32 timeout = 5;
+  bool disable_hooks = 6;
+  bool keep_history = 7;
+}
+
+message HelmTestRequest {
+  string context = 1;
+  string namespace = 2;
+  string release_name = 3;
+  int32 timeout = 4;
+  repeated string filters = 5;
+}
+
+message HelmGetValuesRequest {
+  string context = 1;
+  string namespace = 2;
+  string release_name = 3;
+  bool computed = 4;
+  int32 revision = 5;
+}
+
+message HelmGetOwnedResourcesRequest {
+  string context = 1;
+  string namespace = 2;
+  string release_name = 3;
+  bool scan_all = 4;
+}
+
+message HelmDiffRevisionsRequest {
+  string context = 1;
+  string namespace = 2;
+  string release_name = 3;
+  int32 from = 4;
+  int32 to = 5;
+}
+
+message HelmTextResponse {
+  string text = 1;
+}

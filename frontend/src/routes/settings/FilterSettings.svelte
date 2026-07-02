@@ -5,8 +5,8 @@
     GetClusterPrefs,
     SetClusterSavedFilters,
     SetSavedFilters,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
-  import type {SavedFilter} from "../../../bindings/github.com/Vilsol/klados/internal/config/models.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
+  import type {SavedFilter} from "$api/github.com/Vilsol/klados/internal/config/models.js";
   import {clusterStore} from "$lib/stores/cluster.svelte";
 
   type FilterScope = "global" | "cluster";

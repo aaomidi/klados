@@ -8,7 +8,7 @@
   import {loadPluginComponent} from "$lib/plugins/loader.js";
   import {streamingStore} from "$lib/stores/streaming.svelte.js";
   import {Events, System} from "@wailsio/runtime";
-  import {ListActive} from "../../../bindings/github.com/Vilsol/klados/internal/services/drainservice.js";
+  import {ListActive} from "$api/github.com/Vilsol/klados/internal/services/drainservice.js";
 
   const isMac = System.IsMac();
 
@@ -43,9 +43,7 @@
     return unsub;
   });
 
-  const basePluginURL = $derived(
-    streamingStore.config ? `http://127.0.0.1:${streamingStore.config.port}/${streamingStore.config.token}/plugins` : null,
-  );
+  const basePluginURL = $derived(streamingStore.config ? streamingStore.pluginsBaseUrl() : null);
 </script>
 
 <header class="flex items-center px-4 border-b border-border bg-surface shrink-0 gap-4 {isMac ? 'pl-24 h-[50px]' : 'h-12'}">

@@ -12,7 +12,6 @@ import (
 	"github.com/Vilsol/slox"
 	"github.com/adrg/xdg"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
-	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/Vilsol/klados/internal/cluster"
 	"github.com/Vilsol/klados/internal/config"
@@ -39,7 +38,7 @@ func NewPluginService(appSvc *AppService, resourceSvc *ResourceService) *PluginS
 	return &PluginService{appService: appSvc, resourceSvc: resourceSvc}
 }
 
-func (s *PluginService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *PluginService) Startup(ctx context.Context) error {
 	s.ctx = ctx
 	s.runtimes = make(map[string]*plugin.WasmRuntime)
 	s.storages = make(map[string]*plugin.PluginStorage)
@@ -106,10 +105,7 @@ func (s *PluginService) ServiceStartup(ctx context.Context, _ application.Servic
 
 	s.appService.RegisterPluginsDir(pluginsDir)
 
-	app := application.Get()
-	if app != nil {
-		app.Event.Emit("plugins:loaded", len(reg.GetPlugins()))
-	}
+	s.appService.Emit("plugins:loaded", len(reg.GetPlugins()))
 	return nil
 }
 
@@ -164,6 +160,7 @@ func (s *PluginService) initPluginRuntime(p *plugin.LoadedPlugin, enricherReg *r
 		LogStreamer:      s.appService.LogStreamer(),
 		ExecManager:      s.appService.ExecManager(),
 		TemplateRegistry: s.resourceSvc.TemplateRegistry(),
+		On:               s.appService.On,
 		GetActiveContext: func() string {
 			for _, c := range s.appService.ClusterManager().ListContexts() {
 				if c.Status == cluster.StatusConnected {
@@ -195,10 +192,7 @@ func (s *PluginService) initPluginRuntime(p *plugin.LoadedPlugin, enricherReg *r
 			Ctx:        s.ctx,
 			OnError: func(err error) {
 				s.registry.SetStatus(name, plugin.StatusErrored, err.Error())
-				app := application.Get()
-				if app != nil {
-					app.Event.Emit("plugin:error", map[string]string{"name": name, "error": err.Error()})
-				}
+				s.appService.Emit("plugin:error", map[string]string{"name": name, "error": err.Error()})
 			},
 		})
 	}
@@ -224,10 +218,7 @@ func (s *PluginService) InvokeCommand(pluginName, commandID string) error {
 	go func() {
 		if err := rt.CallCommand(commandID); err != nil {
 			slox.Warn(s.ctx, "[wasm-cmd] CallCommand error", "plugin", pluginName, "command", commandID, "error", err)
-			app := application.Get()
-			if app != nil {
-				app.Event.Emit("plugin:error", map[string]string{"name": pluginName, "error": err.Error()})
-			}
+			s.appService.Emit("plugin:error", map[string]string{"name": pluginName, "error": err.Error()})
 		} else {
 			slox.Info(s.ctx, "[wasm-cmd] CallCommand completed", "plugin", pluginName, "command", commandID)
 		}
@@ -235,7 +226,7 @@ func (s *PluginService) InvokeCommand(pluginName, commandID string) error {
 	return nil
 }
 
-func (s *PluginService) ServiceShutdown() error {
+func (s *PluginService) Shutdown() error {
 	if s.watcher != nil {
 		s.watcher.Stop()
 	}
@@ -255,10 +246,7 @@ func (s *PluginService) ServiceShutdown() error {
 // ReloadPlugin performs a full unload-then-reload cycle for the named plugin.
 // Called by the PluginWatcher on file changes.
 func (s *PluginService) ReloadPlugin(name string) error {
-	app := application.Get()
-	if app != nil {
-		app.Event.Emit("plugin:reloading", map[string]string{"name": name})
-	}
+	s.appService.Emit("plugin:reloading", map[string]string{"name": name})
 
 	dir, ok := s.pluginDirs[name]
 	if !ok {
@@ -272,17 +260,13 @@ func (s *PluginService) ReloadPlugin(name string) error {
 	p, err := s.loader.LoadPlugin(dir)
 	if err != nil {
 		slox.Warn(s.ctx, "plugin reload failed", "plugin", name, "error", err)
-		if app != nil {
-			app.Event.Emit("plugin:error", map[string]string{"name": name, "error": err.Error()})
-		}
+		s.appService.Emit("plugin:error", map[string]string{"name": name, "error": err.Error()})
 		return err
 	}
 
 	if err := s.registry.Register(p, s.resourceSvc.Registry()); err != nil {
 		slox.Warn(s.ctx, "plugin re-register failed", "plugin", name, "error", err)
-		if app != nil {
-			app.Event.Emit("plugin:error", map[string]string{"name": name, "error": err.Error()})
-		}
+		s.appService.Emit("plugin:error", map[string]string{"name": name, "error": err.Error()})
 		return err
 	}
 
@@ -293,10 +277,8 @@ func (s *PluginService) ReloadPlugin(name string) error {
 		_ = s.watcher.Watch(name, dir)
 	}
 
-	if app != nil {
-		app.Event.Emit("plugin:loaded", map[string]string{"name": name})
-		app.Event.Emit("plugins:loaded", len(s.registry.GetPlugins()))
-	}
+	s.appService.Emit("plugin:loaded", map[string]string{"name": name})
+	s.appService.Emit("plugins:loaded", len(s.registry.GetPlugins()))
 	return nil
 }
 
@@ -350,10 +332,7 @@ func (s *PluginService) DisablePlugin(name string) error {
 		c.DisabledPlugins = append(c.DisabledPlugins, name)
 	})
 
-	app := application.Get()
-	if app != nil {
-		app.Event.Emit("plugins:loaded", len(s.registry.GetPlugins()))
-	}
+	s.appService.Emit("plugins:loaded", len(s.registry.GetPlugins()))
 	return nil
 }
 
@@ -395,14 +374,11 @@ func (s *PluginService) EnablePlugin(name string) error {
 		_ = s.watcher.Watch(name, dir)
 	}
 
-	app := application.Get()
-	if app != nil {
-		app.Event.Emit("plugins:loaded", len(s.registry.GetPlugins()))
-	}
+	s.appService.Emit("plugins:loaded", len(s.registry.GetPlugins()))
 	return nil
 }
 
-// ReloadPluginManual is the Wails-bound version of ReloadPlugin.
+// ReloadPluginManual is the RPC-exposed alias of ReloadPlugin.
 func (s *PluginService) ReloadPluginManual(name string) error {
 	return s.ReloadPlugin(name)
 }
@@ -425,10 +401,7 @@ func (s *PluginService) UninstallPlugin(name string) error {
 		return fmt.Errorf("removing plugin dir: %w", err)
 	}
 
-	app := application.Get()
-	if app != nil {
-		app.Event.Emit("plugins:loaded", len(s.registry.GetPlugins()))
-	}
+	s.appService.Emit("plugins:loaded", len(s.registry.GetPlugins()))
 	return nil
 }
 
@@ -440,15 +413,12 @@ func (s *PluginService) EmitClusterEvent(eventName string, payload []byte) {
 	}
 
 	// Notify frontend plugin components.
-	app := application.Get()
-	if app != nil {
-		var decoded interface{}
-		_ = json.Unmarshal(payload, &decoded)
-		app.Event.Emit("plugin:event", map[string]interface{}{
-			"eventName": eventName,
-			"payload":   decoded,
-		})
-	}
+	var decoded interface{}
+	_ = json.Unmarshal(payload, &decoded)
+	s.appService.Emit("plugin:event", map[string]interface{}{
+		"eventName": eventName,
+		"payload":   decoded,
+	})
 
 	// Notify Wasm runtimes for plugins with events permission.
 	for _, info := range s.registry.GetPlugins() {
@@ -714,10 +684,7 @@ func (s *PluginService) InstallPlugin(path string) error {
 		}
 	}
 
-	app := application.Get()
-	if app != nil {
-		app.Event.Emit("plugins:loaded", len(s.registry.GetPlugins()))
-	}
+	s.appService.Emit("plugins:loaded", len(s.registry.GetPlugins()))
 	return nil
 }
 

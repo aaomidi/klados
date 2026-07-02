@@ -1,9 +1,10 @@
 <script lang="ts">
   import {X} from "lucide-svelte";
   import {Combobox} from "@klados/ui";
-  import {StartForward} from "../../../bindings/github.com/Vilsol/klados/internal/services/portforwardservice.js";
-  import {TargetKind} from "../../../bindings/github.com/Vilsol/klados/internal/portforward/models.js";
+  import {StartForward} from "$api/github.com/Vilsol/klados/internal/services/portforwardservice.js";
+  import {TargetKind} from "$api/github.com/Vilsol/klados/internal/portforward/models.js";
   import {Browser, Events} from "@wailsio/runtime";
+  import {capabilitiesStore} from "$lib/stores/capabilities.svelte.js";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {unwrapError} from "$lib/utils/async.js";
   import {clusterStore} from "$lib/stores/cluster.svelte";
@@ -120,7 +121,13 @@
     </div>
 
     <div class="p-4 flex flex-col gap-3">
-      {#if isQuickMode}
+      {#if capabilitiesStore.loaded && !capabilitiesStore.portForwarding}
+        <p class="text-sm text-muted">
+          Port forwarding isn't available on a hosted klados server — the tunnel would open on the
+          server's loopback, not this machine. Use the desktop app, or run
+          <code class="font-mono text-xs">kubectl port-forward</code> locally.
+        </p>
+      {:else if isQuickMode}
         <div class="bg-surface-hover border border-border rounded px-3 py-2">
           <p class="text-xs text-muted mb-0.5">Target</p>
           <p class="text-sm font-mono">{prefillTarget} <span class="text-muted">→ :{prefillRemotePort}</span></p>
@@ -213,10 +220,12 @@
           </div>
         </div>
       {/if}
-      <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" bind:checked={openInBrowser} class="accent-accent">
-        Open in browser after connecting
-      </label>
+      {#if !(capabilitiesStore.loaded && !capabilitiesStore.portForwarding)}
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" bind:checked={openInBrowser} class="accent-accent">
+          Open in browser after connecting
+        </label>
+      {/if}
     </div>
 
     <div class="flex justify-end gap-2 px-4 py-3 border-t border-border">
@@ -225,16 +234,18 @@
         onclick={onclose}
         class="px-3 py-1.5 text-xs rounded border border-border hover:bg-surface-hover transition-colors"
       >
-        Cancel
+        {capabilitiesStore.loaded && !capabilitiesStore.portForwarding ? 'Close' : 'Cancel'}
       </button>
-      <button
-        type="button"
-        onclick={submit}
-        disabled={submitting || (!isQuickMode && (!(targetName && remotePort)))}
-        class="px-3 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/90 transition-colors disabled:opacity-50"
-      >
-        {submitting ? 'Starting…' : 'Start'}
-      </button>
+      {#if !(capabilitiesStore.loaded && !capabilitiesStore.portForwarding)}
+        <button
+          type="button"
+          onclick={submit}
+          disabled={submitting || (!isQuickMode && (!(targetName && remotePort)))}
+          class="px-3 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/90 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Starting…' : 'Start'}
+        </button>
+      {/if}
     </div>
   </div>
 </div>

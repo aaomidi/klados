@@ -4,7 +4,7 @@
     GetPluginSettingsSchema,
     GetPluginSettings,
     SetPluginSettings,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
   import SchemaForm from "$lib/components/SchemaForm.svelte";
   import {getLogger} from "$lib/logger";
 

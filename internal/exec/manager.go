@@ -10,7 +10,6 @@ import (
 	"github.com/sasha-s/go-deadlock"
 
 	"github.com/Vilsol/slox"
-	fiberws "github.com/gofiber/websocket/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -18,6 +17,20 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 
 	"github.com/Vilsol/klados/internal/cluster"
+)
+
+// Conn is the subset of a websocket connection the exec plane needs. Both
+// gofiber/websocket and gorilla/websocket conns satisfy it, keeping this
+// package independent of the HTTP stack that upgraded the connection.
+type Conn interface {
+	ReadMessage() (messageType int, p []byte, err error)
+	WriteMessage(messageType int, data []byte) error
+}
+
+// RFC 6455 opcodes, matching the constants of both websocket libraries.
+const (
+	textMessage   = 1
+	binaryMessage = 2
 )
 
 var scheme = runtime.NewScheme()
@@ -117,14 +130,14 @@ func buildExecRequest(kconn *cluster.Connection, session *execSession) *rest.Req
 		Param("command", session.shell)
 }
 
-func (m *Manager) HandleConn(sessionID string, conn *fiberws.Conn) {
+func (m *Manager) HandleConn(sessionID string, conn Conn) {
 	m.mu.Lock()
 	session, ok := m.sessions[sessionID]
 	m.mu.Unlock()
 
 	if !ok {
 		slox.Warn(m.ctx, "exec session not found", "id", sessionID)
-		_ = conn.WriteMessage(fiberws.TextMessage, []byte(`{"type":"error","message":"session not found"}`))
+		_ = conn.WriteMessage(textMessage, []byte(`{"type":"error","message":"session not found"}`))
 		return
 	}
 
@@ -161,11 +174,11 @@ func (m *Manager) HandleConn(sessionID string, conn *fiberws.Conn) {
 				return
 			}
 			switch mt {
-			case fiberws.BinaryMessage:
+			case binaryMessage:
 				if _, err := stdinW.Write(msg); err != nil {
 					return
 				}
-			case fiberws.TextMessage:
+			case textMessage:
 				var rm resizeMsg
 				if json.Unmarshal(msg, &rm) == nil && rm.Type == "resize" {
 					select {
@@ -222,13 +235,13 @@ func (m *Manager) StopAll() {
 const execBufSize = 256
 
 type wsWriter struct {
-	conn      *fiberws.Conn
+	conn      Conn
 	ctx       context.Context
 	sessionID string
 	ch        chan []byte
 }
 
-func newWSWriter(conn *fiberws.Conn, ctx context.Context, sessionID string) *wsWriter {
+func newWSWriter(conn Conn, ctx context.Context, sessionID string) *wsWriter {
 	w := &wsWriter{conn: conn, ctx: ctx, sessionID: sessionID, ch: make(chan []byte, execBufSize)}
 	go w.drain()
 	return w
@@ -247,7 +260,7 @@ func (w *wsWriter) Write(p []byte) (int, error) {
 
 func (w *wsWriter) drain() {
 	for chunk := range w.ch {
-		if err := w.conn.WriteMessage(fiberws.BinaryMessage, chunk); err != nil {
+		if err := w.conn.WriteMessage(binaryMessage, chunk); err != nil {
 			return
 		}
 	}

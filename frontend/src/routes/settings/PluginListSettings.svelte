@@ -1,7 +1,7 @@
 <script lang="ts">
   import {onMount} from "svelte";
   import {push} from "svelte-spa-router";
-  import {ListPlugins, GetPluginSettingsSchema} from "../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
+  import {ListPlugins, GetPluginSettingsSchema} from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
   import {getLogger} from "$lib/logger";
 
   const log = getLogger("settings");

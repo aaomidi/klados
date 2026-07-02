@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// ExecService mirrors internal/services.ExecService. The returned session id
+// is redeemed against the WebSocket endpoint /ws/exec/{session_id} — exec
+// needs full-duplex streaming, which browser fetch (and therefore
+// connect-web) cannot provide, so the PTY plane stays on WebSocket.
+service ExecService {
+  rpc OpenExecSession(OpenExecSessionRequest) returns (OpenExecSessionResponse);
+  rpc CloseExecSession(CloseExecSessionRequest) returns (EmptyResponse);
+}
+
+message OpenExecSessionRequest {
+  string context = 1;
+  string namespace = 2;
+  string pod_name = 3;
+  string container = 4;
+  string shell = 5;
+}
+
+message OpenExecSessionResponse {
+  string session_id = 1;
+}
+
+message CloseExecSessionRequest {
+  string session_id = 1;
+}

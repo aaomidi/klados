@@ -1,6 +1,6 @@
 <script lang="ts">
   import {onMount} from "svelte";
-  import {GetResource} from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import PortForwardDialog from "$lib/components/PortForwardDialog.svelte";
   import {SectionHeader, KeyValueBadge, EmptyState} from "@klados/ui";
   import type {KubernetesResource} from "$lib/types";

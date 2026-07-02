@@ -11,7 +11,6 @@ import (
 
 	"github.com/Vilsol/slox"
 	"github.com/adrg/xdg"
-	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/Vilsol/klados/internal/resource"
 )
@@ -25,8 +24,12 @@ func NewSchemaService(appSvc *AppService) *SchemaService {
 	return &SchemaService{appSvc: appSvc}
 }
 
-func (s *SchemaService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *SchemaService) Startup(ctx context.Context) error {
 	s.ctx = ctx
+	return nil
+}
+
+func (s *SchemaService) Shutdown() error {
 	return nil
 }
 

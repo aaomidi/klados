@@ -1,7 +1,7 @@
 <script lang="ts">
   import {onDestroy, untrack} from "svelte";
-  import {StartLogStream, StopLogStream} from "../../../../bindings/github.com/Vilsol/klados/internal/services/logservice.js";
-  import {LogOptions} from "../../../../bindings/github.com/Vilsol/klados/internal/logs/models.js";
+  import {StartLogStream, StopLogStream} from "$api/github.com/Vilsol/klados/internal/services/logservice.js";
+  import {LogOptions} from "$api/github.com/Vilsol/klados/internal/logs/models.js";
   import {streamingStore} from "$lib/stores/streaming.svelte";
   import {sessionStore} from "$lib/stores/session.svelte";
   import {LogViewer, Combobox} from "@klados/ui";
@@ -151,7 +151,7 @@
       const allLines: string[] = [];
       let buf = "";
       await new Promise<void>((resolve) => {
-        const socket = new WebSocket(`ws://127.0.0.1:${streamingStore.config?.port}/${streamingStore.config?.token}/ws/logs/${id}`);
+        const socket = new WebSocket(streamingStore.logStreamUrl(id));
         socket.onmessage = (e) => {
           if (typeof e.data !== "string") {
             return;

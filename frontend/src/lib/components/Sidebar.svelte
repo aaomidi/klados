@@ -5,10 +5,10 @@
   import {Events} from "@wailsio/runtime";
   import {push, router} from "svelte-spa-router";
   import {onDestroy} from "svelte";
-  import {ListAPIResources} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-  import {ListForwards, StopForward} from "../../../bindings/github.com/Vilsol/klados/internal/services/portforwardservice.js";
-  import {GetPluginSidebarEntries} from "../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
-  import type {APIResource} from "../../../bindings/github.com/Vilsol/klados/internal/cluster/index.js";
+  import {ListAPIResources} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {ListForwards, StopForward} from "$api/github.com/Vilsol/klados/internal/services/portforwardservice.js";
+  import {GetPluginSidebarEntries} from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
+  import type {APIResource} from "$api/github.com/Vilsol/klados/internal/cluster/index.js";
   import {notificationStore} from "$lib/stores/notification.svelte.js";
   import {unwrapError} from "$lib/utils/async.js";
   import {descriptorRegistry} from "$lib/registry/index";

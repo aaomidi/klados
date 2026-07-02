@@ -1,6 +1,6 @@
 <script lang="ts">
   import {Events} from "@wailsio/runtime";
-  import {IsActive, CancelDrain} from "../../../../bindings/github.com/Vilsol/klados/internal/services/drainservice.js";
+  import {IsActive, CancelDrain} from "$api/github.com/Vilsol/klados/internal/services/drainservice.js";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import type {KubernetesResource} from "$lib/types";
 

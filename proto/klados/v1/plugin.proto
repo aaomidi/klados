@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// PluginService mirrors internal/services.PluginService.
+service PluginService {
+  rpc InvokeCommand(PluginInvokeCommandRequest) returns (EmptyResponse);
+  rpc ReloadPluginManual(PluginNameRequest) returns (EmptyResponse);
+  rpc EnablePlugin(PluginNameRequest) returns (EmptyResponse);
+  rpc DisablePlugin(PluginNameRequest) returns (EmptyResponse);
+  rpc UninstallPlugin(PluginNameRequest) returns (EmptyResponse);
+  rpc InstallPlugin(PluginInstallRequest) returns (EmptyResponse);
+  rpc PackPlugin(PluginPackRequest) returns (PluginPackResponse);
+  rpc SaveRegistryCredentials(PluginSaveRegistryCredentialsRequest) returns (EmptyResponse);
+  rpc AddInsecureRegistry(PluginHostRequest) returns (EmptyResponse);
+  rpc EmitClusterEvent(PluginEmitClusterEventRequest) returns (EmptyResponse);
+
+  rpc GetPluginStorageKey(PluginStorageKeyRequest) returns (PluginStorageValueResponse);
+  rpc SetPluginStorageKey(PluginSetStorageKeyRequest) returns (EmptyResponse);
+  rpc DeletePluginStorageKey(PluginStorageKeyRequest) returns (EmptyResponse);
+  rpc ListPluginStorageKeys(PluginNameRequest) returns (StringListResponse);
+
+  rpc ListPlugins(EmptyRequest) returns (JsonResponse);
+  rpc GetPluginDescriptors(EmptyRequest) returns (JsonResponse);
+  rpc GetPluginSidebarEntries(EmptyRequest) returns (JsonResponse);
+  rpc GetPluginDetailTabs(EmptyRequest) returns (JsonResponse);
+  rpc GetPluginCommands(EmptyRequest) returns (JsonResponse);
+  rpc GetPluginOverviewFields(PluginGVRRequest) returns (JsonResponse);
+  rpc GetPluginListColumns(PluginGVRRequest) returns (JsonResponse);
+  rpc GetPluginContextMenuItems(PluginGVRRequest) returns (JsonResponse);
+  rpc GetPluginHeaderWidgets(EmptyRequest) returns (JsonResponse);
+  rpc GetPluginStatusBarWidgets(EmptyRequest) returns (JsonResponse);
+  rpc GetPluginMetricQueries(PluginGVRRequest) returns (JsonResponse);
+  rpc GetPluginSettings(PluginNameRequest) returns (PluginSettingsResponse);
+  rpc SetPluginSettings(PluginSetSettingsRequest) returns (EmptyResponse);
+  rpc GetPluginSettingsSchema(PluginNameRequest) returns (PluginSettingsResponse);
+}
+
+message PluginInvokeCommandRequest {
+  string plugin_name = 1;
+  string command_id = 2;
+}
+
+message PluginNameRequest {
+  string name = 1;
+}
+
+message PluginInstallRequest {
+  // OCI reference (oci://...), directory path, or .oci.tar(.gz) archive path
+  // on the server's filesystem. Mutually exclusive with archive_data.
+  string path = 1;
+  // Browser-uploaded plugin archive contents (.oci.tar.gz). When set, the
+  // server persists it to a temp file and installs from there.
+  bytes archive_data = 2;
+  string archive_name = 3;
+}
+
+message PluginPackRequest {
+  string plugin_dir = 1;
+}
+
+message PluginPackResponse {
+  string archive_path = 1;
+}
+
+message PluginSaveRegistryCredentialsRequest {
+  string host = 1;
+  string username = 2;
+  string password = 3;
+}
+
+message PluginHostRequest {
+  string host = 1;
+}
+
+message PluginEmitClusterEventRequest {
+  string event_name = 1;
+  bytes payload_json = 2;
+}
+
+message PluginStorageKeyRequest {
+  string plugin_name = 1;
+  string key = 2;
+}
+
+message PluginStorageValueResponse {
+  string value = 1;
+}
+
+message PluginSetStorageKeyRequest {
+  string plugin_name = 1;
+  string key = 2;
+  string value = 3;
+}
+
+message PluginGVRRequest {
+  string gvr = 1;
+}
+
+message PluginSettingsResponse {
+  string value = 1;
+}
+
+message PluginSetSettingsRequest {
+  string name = 1;
+  string settings_json = 2;
+}

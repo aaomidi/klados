@@ -6,12 +6,12 @@ const {mockStartLogStream, mockStopLogStream} = vi.hoisted(() => ({
   mockStopLogStream: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/logservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/logservice.js", () => ({
   StartLogStream: mockStartLogStream,
   StopLogStream: mockStopLogStream,
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/logs/models.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/logs/models.js", () => ({
   LogOptions: class LogOptions {
     constructor(opts: unknown) {
       Object.assign(this, opts);

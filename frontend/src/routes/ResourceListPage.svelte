@@ -4,8 +4,8 @@
   import ResourceList from "$lib/components/ResourceList.svelte";
   import ResourceDetail from "$lib/components/ResourceDetail.svelte";
   import {DetailDrawer} from "@klados/ui";
-  import {GetResource} from "../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-  import {GetListMetrics} from "../../bindings/github.com/Vilsol/klados/internal/services/metricsservice.js";
+  import {GetResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetListMetrics} from "$api/github.com/Vilsol/klados/internal/services/metricsservice.js";
   import {createResourceStore} from "$lib/stores/resource.svelte";
   import {createResourceStore as globalCreateStore} from "$lib/stores/createResource.svelte";
   import {descriptorRegistry} from "$lib/registry/index";

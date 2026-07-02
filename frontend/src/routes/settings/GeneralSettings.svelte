@@ -7,7 +7,7 @@
     SetStartupBehavior,
     SetTerminalWebGL,
     SetVolumeBrowser,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
   import type {VolumeBrowserConfig as VBConfig} from "$lib/stores/preferences.svelte";
   import VolumeBrowserSettings from "./VolumeBrowserSettings.svelte";
 

@@ -3,8 +3,8 @@
   import {Events} from "@wailsio/runtime";
   import {onDestroy} from "svelte";
   import {clusterStore} from "$lib/stores/cluster.svelte";
-  import {GetCapabilities, GetNamespaceMetrics} from "../../bindings/github.com/Vilsol/klados/internal/services/metricsservice.js";
-  import {GetClusterHealth} from "../../bindings/github.com/Vilsol/klados/internal/services/appservice.js";
+  import {GetCapabilities, GetNamespaceMetrics} from "$api/github.com/Vilsol/klados/internal/services/metricsservice.js";
+  import {GetClusterHealth} from "$api/github.com/Vilsol/klados/internal/services/appservice.js";
   import MetricsChart from "$lib/components/charts/MetricsChart.svelte";
   import TimeRangeSelector from "$lib/components/charts/TimeRangeSelector.svelte";
   import {Combobox} from "@klados/ui";

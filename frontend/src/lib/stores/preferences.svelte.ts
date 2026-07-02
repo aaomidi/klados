@@ -1,5 +1,5 @@
 import {Events} from "@wailsio/runtime";
-import {GetResolvedPrefs} from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
+import {GetResolvedPrefs} from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
 import {getLogger} from "$lib/logger";
 
 const log = getLogger("preferences");

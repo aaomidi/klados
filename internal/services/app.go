@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/Vilsol/slox"
 	"github.com/adrg/xdg"
-	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/Vilsol/klados/internal/cluster"
 	"github.com/Vilsol/klados/internal/config"
@@ -19,56 +17,61 @@ import (
 	"github.com/Vilsol/klados/internal/logs"
 	"github.com/Vilsol/klados/internal/portforward"
 	"github.com/Vilsol/klados/internal/session"
-	"github.com/Vilsol/klados/internal/streaming"
 	"github.com/Vilsol/klados/internal/volumebrowser"
 
 	"github.com/google/uuid"
 )
 
 type AppService struct {
-	clusterMgr         *cluster.Manager
-	streamingSrv       *streaming.Server
-	logStreamer         *logs.Streamer
-	execManager        *exec.Manager
+	clusterMgr           *cluster.Manager
+	logStreamer          *logs.Streamer
+	execManager          *exec.Manager
 	portForwardManager   *portforward.Manager
 	volumeBrowserManager *volumebrowser.Manager
 	session              *session.Session
-	config             *config.Config
-	pluginSvc          *PluginService
-	volumeBrowserSvc   *VolumeBrowserService
-	ctx                context.Context
-	app                *application.App
+	config               *config.Config
+	pluginSvc            *PluginService
+	volumeBrowserSvc     *VolumeBrowserService
+	pluginsDir           string
+	ctx                  context.Context
+	emit                 func(string, any)
+	on                   func(string, func([]byte)) func()
 }
 
-func NewAppService(cfg *config.Config, sess *session.Session, ctx context.Context) *AppService {
+func NewAppService(cfg *config.Config, sess *session.Session, ctx context.Context, emit func(string, any), on func(string, func([]byte)) func()) *AppService {
 	return &AppService{
 		config:  cfg,
 		session: sess,
 		ctx:     ctx,
+		emit:    emit,
+		on:      on,
 	}
 }
 
-func (a *AppService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
-	a.app = application.Get()
+// Emit publishes an event on the hub this service graph is wired to.
+func (a *AppService) Emit(name string, data any) {
+	if a.emit != nil {
+		a.emit(name, data)
+	}
+}
+
+// On registers an in-process event handler; the callback receives the
+// JSON-encoded payload. Returns an unsubscribe func.
+func (a *AppService) On(name string, cb func(payloadJSON []byte)) func() {
+	if a.on == nil {
+		return func() {}
+	}
+	return a.on(name, cb)
+}
+
+func (a *AppService) Startup(ctx context.Context) error {
 	a.ctx = slox.Into(ctx, slog.Default())
 
-	emitEvent := func(name string, data any) {
-		if a.app != nil {
-			a.app.Event.Emit(name, data)
-		}
-	}
-
-	a.clusterMgr = cluster.NewManager(emitEvent, a.config, a.ctx)
+	a.clusterMgr = cluster.NewManager(a.Emit, a.config, a.ctx)
 	a.logStreamer = logs.NewStreamer(a.clusterMgr, a.ctx)
 	a.execManager = exec.NewManager(a.clusterMgr, a.ctx)
-	a.portForwardManager = portforward.NewManager(a.clusterMgr, a.config, emitEvent, a.ctx)
+	a.portForwardManager = portforward.NewManager(a.clusterMgr, a.config, a.Emit, a.ctx)
 	a.volumeBrowserManager = volumebrowser.NewManager(a.ctx, a.clusterMgr, uuid.NewString())
-	a.streamingSrv = streaming.NewServer(emitEvent, a.ctx)
-	a.streamingSrv.RegisterHandlers(a.logStreamer, a.execManager)
-
-	if err := a.streamingSrv.Start(a.ctx); err != nil {
-		return err
-	}
 
 	if err := a.clusterMgr.LoadKubeconfigs(a.config.KubeconfigPaths); err != nil {
 		slox.Warn(a.ctx, "failed to load kubeconfigs", "error", err)
@@ -125,7 +128,7 @@ func (a *AppService) ServiceStartup(ctx context.Context, options application.Ser
 	return nil
 }
 
-func (a *AppService) ServiceShutdown() error {
+func (a *AppService) Shutdown() error {
 	if a.session != nil {
 		_ = a.session.Save()
 	}
@@ -133,12 +136,6 @@ func (a *AppService) ServiceShutdown() error {
 	if a.clusterMgr != nil {
 		if err := a.clusterMgr.DisconnectAll(); err != nil {
 			slox.Error(a.ctx, "error disconnecting clusters", "error", err)
-		}
-	}
-
-	if a.streamingSrv != nil {
-		if err := a.streamingSrv.Stop(); err != nil {
-			slox.Error(a.ctx, "error stopping streaming server", "error", err)
 		}
 	}
 
@@ -151,39 +148,6 @@ func (a *AppService) ClusterManager() *cluster.Manager {
 
 func (a *AppService) Config() *config.Config {
 	return a.config
-}
-
-func (a *AppService) BrowseKubeconfigFile() (string, error) {
-	return a.app.Dialog.OpenFile().
-		AddFilter("Kubeconfig files", "*.yaml").
-		PromptForSingleSelection()
-}
-
-func (a *AppService) BrowsePluginFile() (string, error) {
-	return a.app.Dialog.OpenFile().
-		AddFilter("Klados plugin archives", "*.oci.tar.gz").
-		PromptForSingleSelection()
-}
-
-func (a *AppService) BrowseManifestFile() (string, error) {
-	path, err := a.app.Dialog.OpenFile().
-		AddFilter("YAML files", "*.yaml;*.yml").
-		PromptForSingleSelection()
-	if err != nil || path == "" {
-		return "", err
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
-func (a *AppService) GetStreamingConfig() streaming.StreamingConfig {
-	return streaming.StreamingConfig{
-		Port:  a.streamingSrv.Port(),
-		Token: a.streamingSrv.Token(),
-	}
 }
 
 func (a *AppService) LogStreamer() *logs.Streamer {
@@ -202,27 +166,28 @@ func (a *AppService) VolumeBrowserManager() *volumebrowser.Manager {
 	return a.volumeBrowserManager
 }
 
+// RegisterPluginsDir records where plugin JS bundles live; the HTTP server
+// serves them from /plugins/.
 func (a *AppService) RegisterPluginsDir(dir string) {
-	if a.streamingSrv != nil {
-		a.streamingSrv.SetPluginsDir(dir)
-	}
+	a.pluginsDir = dir
+}
+
+func (a *AppService) PluginsDir() string {
+	return a.pluginsDir
 }
 
 func (a *AppService) Ctx() context.Context {
 	return a.ctx
 }
 
-//wails:ignore
 func (a *AppService) SetPluginService(svc *PluginService) {
 	a.pluginSvc = svc
 }
 
-//wails:ignore
 func (a *AppService) SetVolumeBrowserService(svc *VolumeBrowserService) {
 	a.volumeBrowserSvc = svc
 }
 
-//wails:ignore
 func (a *AppService) PluginService() *PluginService {
 	return a.pluginSvc
 }

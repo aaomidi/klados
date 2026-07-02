@@ -1,6 +1,6 @@
 import {describe, it, expect, vi, beforeEach} from "vitest";
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/pluginservice.js", () => ({
   GetPluginDetailTabs: vi.fn().mockResolvedValue([]),
   GetPluginCommands: vi.fn().mockResolvedValue([]),
   GetPluginOverviewFields: vi.fn().mockResolvedValue([]),
@@ -10,8 +10,8 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/pluginserv
   GetPluginStatusBarWidgets: vi.fn().mockResolvedValue([]),
 }));
 
-import {GetPluginDetailTabs, GetPluginCommands} from "../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
-import type {PermsSummary} from "../../../bindings/github.com/Vilsol/klados/internal/plugin/models.js";
+import {GetPluginDetailTabs, GetPluginCommands} from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
+import type {PermsSummary} from "$api/github.com/Vilsol/klados/internal/plugin/models.js";
 import {slotRegistry} from "$lib/plugins/slots.svelte.js";
 
 describe("SlotRegistry", () => {

@@ -2,7 +2,7 @@ import {describe, it, expect, vi, beforeEach} from "vitest";
 import {render, screen, fireEvent, waitFor} from "@testing-library/svelte";
 import {Events as WailsEvents} from "@wailsio/runtime";
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   GetEvents: vi.fn().mockResolvedValue([]),
   StartWatch: vi.fn().mockResolvedValue(undefined),
   StopWatch: vi.fn().mockResolvedValue(undefined),
@@ -15,7 +15,7 @@ vi.mock("$lib/stores/cluster.svelte", () => ({
 }));
 
 import EventsPanel from "$lib/components/panels/EventsPanel.svelte";
-import {GetEvents, StartWatch, StopWatch} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+import {GetEvents, StartWatch, StopWatch} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
 
 const mockGetEvents = GetEvents as ReturnType<typeof vi.fn>;
 const mockStartWatch = StartWatch as ReturnType<typeof vi.fn>;

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// PortForwardService mirrors internal/services.PortForwardService.
+// Functional only when the server runs on the same machine as the browser
+// (desktop mode) — the GetCapabilities flag gates the UI.
+service PortForwardService {
+  rpc StartForward(PortForwardStartRequest) returns (JsonResponse);
+  rpc StopForward(PortForwardIDRequest) returns (EmptyResponse);
+  rpc ConnectSavedForward(PortForwardSavedRequest) returns (JsonResponse);
+  rpc ListForwards(ContextRequest) returns (JsonResponse);
+  rpc SavePortForward(PortForwardSaveRequest) returns (EmptyResponse);
+  rpc RemoveSavedPortForward(PortForwardSavedRequest) returns (EmptyResponse);
+  rpc SetPortForwardEnabled(PortForwardSetEnabledRequest) returns (EmptyResponse);
+  rpc ListSavedPortForwards(ContextRequest) returns (JsonResponse);
+}
+
+message PortForwardStartRequest {
+  string context = 1;
+  string namespace = 2;
+  // portforward.TargetKind: "pod" | "service" | ...
+  string target_kind = 3;
+  string target_name = 4;
+  string target_gvr = 5;
+  int32 local_port = 6;
+  int32 remote_port = 7;
+}
+
+message PortForwardIDRequest {
+  string forward_id = 1;
+}
+
+message PortForwardSavedRequest {
+  string context = 1;
+  string saved_id = 2;
+}
+
+message PortForwardSaveRequest {
+  string context = 1;
+  // JSON-encoded config.SavedPortForward.
+  bytes forward_json = 2;
+}
+
+message PortForwardSetEnabledRequest {
+  string context = 1;
+  string id = 2;
+  bool enabled = 3;
+}

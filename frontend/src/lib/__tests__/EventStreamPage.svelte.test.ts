@@ -63,14 +63,14 @@ vi.mock("$lib/registry/loaded.svelte", () => ({
   registryLoaded: vi.fn().mockReturnValue(false),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   GetResource: vi.fn().mockResolvedValue(null),
   ListResources: vi.fn().mockResolvedValue([]),
   StartWatch: vi.fn().mockResolvedValue(undefined),
   StopWatch: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
   GetColumnPrefs: vi.fn().mockResolvedValue(null),
   GetCompactRows: vi.fn().mockResolvedValue(false),
   SetColumnPrefs: vi.fn().mockResolvedValue(undefined),
@@ -78,7 +78,7 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/configserv
   DeleteColumnPrefs: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/config/models.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/config/models.js", () => ({
   GVRColumnPrefs: vi.fn(),
   ColumnSettings: vi.fn(),
   SortPrefs: vi.fn(),

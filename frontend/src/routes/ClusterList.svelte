@@ -11,8 +11,8 @@
     GetColumnPrefs,
     SetColumnPrefs,
     DeleteColumnPrefs,
-  } from "../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
-  import {GVRColumnPrefs, ColumnSettings, SortPrefs} from "../../bindings/github.com/Vilsol/klados/internal/config/models.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
+  import {GVRColumnPrefs, ColumnSettings, SortPrefs} from "$api/github.com/Vilsol/klados/internal/config/models.js";
 
   const PREFS_KEY = "_clusterList";
 

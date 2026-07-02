@@ -1,0 +1,11 @@
+.git
+.jj
+node_modules
+**/node_modules
+frontend/dist
+bin
+.task
+.direnv
+.wolf
+deploy
+win.zip

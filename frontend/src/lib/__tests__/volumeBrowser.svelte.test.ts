@@ -4,7 +4,7 @@ const spawnMock = vi.fn();
 const replaceMock = vi.fn();
 const attachTabMock = vi.fn();
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/volumebrowserservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/volumebrowserservice.js", () => ({
   Spawn: (...args: unknown[]) => spawnMock(...args),
   Replace: (...args: unknown[]) => replaceMock(...args),
   AttachTab: (...args: unknown[]) => attachTabMock(...args),

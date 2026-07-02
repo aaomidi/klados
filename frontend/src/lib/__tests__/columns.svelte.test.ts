@@ -7,7 +7,7 @@ const {mockGetColumnPrefs, mockSetColumnPrefs, mockGetCompactRows, mockGetDescri
   mockGetDescriptor: vi.fn(),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
   GetColumnPrefs: mockGetColumnPrefs,
   SetColumnPrefs: mockSetColumnPrefs,
   DeleteColumnPrefs: vi.fn(),

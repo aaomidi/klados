@@ -160,6 +160,9 @@ func (e *ResourceEngine) List(ctx context.Context, contextName, gvr, namespace s
 	result := make([]map[string]any, len(list.Items))
 	for i := range list.Items {
 		e.enrich(contextName, gvr, &list.Items[i])
+		// Same trim as the watch path: list rows never render managedFields,
+		// and the detail view re-fetches via Get for the full object.
+		unstructured.RemoveNestedField(list.Items[i].Object, "metadata", "managedFields")
 		result[i] = list.Items[i].Object
 	}
 	tEnrich := time.Since(t0)

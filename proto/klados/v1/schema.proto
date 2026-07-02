@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// SchemaService mirrors internal/services.SchemaService.
+service SchemaService {
+  rpc GetSchema(SchemaGetSchemaRequest) returns (JsonResponse);
+}
+
+message SchemaGetSchemaRequest {
+  string context = 1;
+  string gvr = 2;
+  string kind = 3;
+}

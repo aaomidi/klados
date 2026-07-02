@@ -12,8 +12,8 @@
   import "$lib/navTiming";
   import {shortcutStore} from "$lib/stores/shortcuts.svelte";
   import {Events} from "@wailsio/runtime";
-  import {LogFrontend, GetSession, SaveUIState} from "../bindings/github.com/Vilsol/klados/internal/services/appservice.js";
-  import type {TabState} from "../bindings/github.com/Vilsol/klados/internal/session/models.js";
+  import {LogFrontend, GetSession, SaveUIState} from "$api/github.com/Vilsol/klados/internal/services/appservice.js";
+  import type {TabState} from "$api/github.com/Vilsol/klados/internal/session/models.js";
   import PanelWindow from "$lib/components/PanelWindow.svelte";
   import StackTrace from "stacktrace-js";
   import CreateResourceDialog from "$lib/components/CreateResourceDialog.svelte";

@@ -4,7 +4,7 @@
     GetCapabilities,
     GetResourceMetrics,
     GetPluginMetrics,
-  } from "../../../../bindings/github.com/Vilsol/klados/internal/services/metricsservice.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/metricsservice.js";
   import type {MetricsCapability, MetricsResponse, TimeSeries, TimeSeriesPoint} from "./types";
   import MetricsChart from "./MetricsChart.svelte";
   import TimeRangeSelector from "./TimeRangeSelector.svelte";

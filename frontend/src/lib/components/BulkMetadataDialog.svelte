@@ -4,7 +4,7 @@
   import {selectionStore} from "$lib/stores/selection.svelte";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {Check, X, Loader2} from "lucide-svelte";
-  import {UpdateResource} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {UpdateResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
 
   let {
     open = $bindable(false),

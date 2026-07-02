@@ -1,7 +1,8 @@
 <script lang="ts">
   import {Dialog} from "bits-ui";
-  import {AddKubeconfigPath, ImportKubeconfigContent} from "../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice.js";
-  import {BrowseKubeconfigFile} from "../../../bindings/github.com/Vilsol/klados/internal/services/appservice.js";
+  import {AddKubeconfigPath, ImportKubeconfigContent} from "$api/github.com/Vilsol/klados/internal/services/clusterservice.js";
+  import {BrowseKubeconfigFile} from "$api/github.com/Vilsol/klados/internal/services/appservice.js";
+  import {capabilitiesStore} from "$lib/stores/capabilities.svelte.js";
   import {notificationStore} from "$lib/stores/notification.svelte.js";
   import {unwrapError} from "$lib/utils/async.js";
 
@@ -13,17 +14,46 @@
     onsuccess: (contexts: unknown[]) => void;
   } = $props();
 
-  let mode = $state<"path" | "paste">("path");
+  let mode = $state<"file" | "paste">("file");
   let filePath = $state("");
+  let uploadedName = $state("");
+  let uploadedContent = $state("");
   let yamlContent = $state("");
   let error = $state("");
   let loading = $state(false);
+  let fileInput = $state<HTMLInputElement>();
 
+  async function onFileChosen(e: Event) {
+    error = "";
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+    try {
+      uploadedContent = await file.text();
+      uploadedName = file.name;
+      filePath = "";
+    } catch (err: unknown) {
+      error = (err as {message?: string})?.message ?? String(err);
+    } finally {
+      input.value = "";
+    }
+  }
+
+  // Desktop: native open dialog fills the path (imported by reference, like
+  // pre-split). Web: hidden file input imports by content.
   async function browse() {
+    if (!capabilitiesStore.nativeDialogs) {
+      fileInput?.click();
+      return;
+    }
     try {
       const path = await BrowseKubeconfigFile();
       if (path) {
         filePath = path;
+        uploadedContent = "";
+        uploadedName = "";
       }
     } catch (e: unknown) {
       error = (e as {message?: string})?.message ?? String(e);
@@ -35,12 +65,15 @@
     loading = true;
     try {
       let contexts: unknown[];
-      if (mode === "path") {
-        if (!filePath.trim()) {
-          error = "Enter a file path";
+      if (mode === "file") {
+        if (uploadedContent) {
+          contexts = await ImportKubeconfigContent(uploadedContent);
+        } else if (filePath.trim()) {
+          contexts = await AddKubeconfigPath(filePath.trim());
+        } else {
+          error = "Choose a file or enter a path on the server";
           return;
         }
-        contexts = await AddKubeconfigPath(filePath.trim());
       } else {
         if (!yamlContent.trim()) {
           error = "Paste kubeconfig YAML";
@@ -51,6 +84,8 @@
       open = false;
       filePath = "";
       yamlContent = "";
+      uploadedContent = "";
+      uploadedName = "";
       const count = (contexts ?? []).length;
       notificationStore.success(`Imported ${count} context${count === 1 ? "" : "s"}`);
       onsuccess(contexts ?? []);
@@ -75,11 +110,11 @@
       <div class="flex gap-1 mb-4 border-b border-border">
         <button
           type="button"
-          onclick={() => { mode = 'path'; error = '' }}
+          onclick={() => { mode = 'file'; error = '' }}
           class="px-3 py-1.5 text-xs font-medium border-b-2 transition-colors
-            {mode === 'path' ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-fg'}"
+            {mode === 'file' ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-fg'}"
         >
-          File Path
+          File
         </button>
         <button
           type="button"
@@ -91,12 +126,20 @@
         </button>
       </div>
 
-      {#if mode === 'path'}
-        <div class="flex gap-2 mb-4">
+      {#if mode === 'file'}
+        <input
+          type="file"
+          accept=".yaml,.yml,.conf,.kubeconfig,application/yaml"
+          class="hidden"
+          bind:this={fileInput}
+          onchange={onFileChosen}
+        >
+        <div class="flex gap-2 mb-2">
           <input
             type="text"
             bind:value={filePath}
-            placeholder="/path/to/kubeconfig.yaml"
+            oninput={() => { uploadedContent = ''; uploadedName = '' }}
+            placeholder="/path/on/server/kubeconfig.yaml"
             class="flex-1 px-3 py-1.5 text-sm rounded border border-border bg-surface focus:outline-none focus:border-accent"
           >
           <button
@@ -104,9 +147,14 @@
             onclick={browse}
             class="px-3 py-1.5 text-sm rounded border border-border hover:bg-surface-hover transition-colors shrink-0"
           >
-            Browse
+            {capabilitiesStore.nativeDialogs ? 'Browse…' : 'Upload…'}
           </button>
         </div>
+        {#if uploadedName}
+          <p class="text-xs text-muted mb-4">Selected: {uploadedName} (imported by content)</p>
+        {:else if !capabilitiesStore.nativeDialogs}
+          <p class="text-xs text-muted mb-4">Upload a kubeconfig from this machine, or reference a path readable by the server.</p>
+        {/if}
       {:else}
         <textarea
           bind:value={yamlContent}

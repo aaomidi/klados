@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/wailsapp/wails/v3/pkg/application"
-
 	"github.com/Vilsol/klados/internal/config"
 	"github.com/Vilsol/klados/internal/portforward"
 )
@@ -20,13 +18,13 @@ func NewPortForwardService(appSvc *AppService) *PortForwardService {
 	return &PortForwardService{appService: appSvc}
 }
 
-func (s *PortForwardService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *PortForwardService) Startup(ctx context.Context) error {
 	s.ctx = ctx
 	s.manager = s.appService.PortForwardManager()
 	return nil
 }
 
-func (s *PortForwardService) ServiceShutdown() error {
+func (s *PortForwardService) Shutdown() error {
 	if s.manager != nil {
 		s.manager.StopAll()
 	}

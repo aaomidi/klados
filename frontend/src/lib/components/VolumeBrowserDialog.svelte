@@ -2,7 +2,7 @@
   import {Dialog} from "bits-ui";
   import VolumeBrowserSettings from "../../routes/settings/VolumeBrowserSettings.svelte";
   import type {VolumeBrowserConfig} from "$lib/stores/preferences.svelte";
-  import type {SpawnOverridesDTO} from "../../../bindings/github.com/Vilsol/klados/internal/services/models.js";
+  import type {SpawnOverridesDTO} from "$api/github.com/Vilsol/klados/internal/services/models.js";
 
   interface Props {
     open: boolean;

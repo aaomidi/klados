@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Vilsol/slox"
-	"github.com/wailsapp/wails/v3/pkg/application"
 	batchv1 "k8s.io/api/batch/v1"
 	errors "k8s.io/apimachinery/pkg/api/errors"
 	apiresource "k8s.io/apimachinery/pkg/api/resource"
@@ -44,15 +43,8 @@ func NewResourceServiceWithRegistry(reg *resource.TemplateRegistry) *ResourceSer
 	return &ResourceService{templateReg: reg}
 }
 
-func (s *ResourceService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *ResourceService) Startup(ctx context.Context) error {
 	s.ctx = ctx
-
-	app := application.Get()
-	emit := func(name string, data any) {
-		if app != nil {
-			app.Event.Emit(name, data)
-		}
-	}
 
 	reg, err := resource.NewRegistry()
 	if err != nil {
@@ -67,7 +59,7 @@ func (s *ResourceService) ServiceStartup(ctx context.Context, _ application.Serv
 	s.registry = reg
 	s.enricherReg = enricherReg
 	s.engine = resource.NewResourceEngine(s.appService.ClusterManager(), enricherReg)
-	s.watchMgr = watcher.NewWatchManager(s.appService.ClusterManager(), enricherReg, emit, s.appService.Ctx())
+	s.watchMgr = watcher.NewWatchManager(s.appService.ClusterManager(), enricherReg, s.appService.Emit, s.appService.Ctx())
 
 	cm := s.appService.ClusterManager()
 	cm.OnDisconnect(func(name string) { s.watchMgr.StopContext(name) })
@@ -81,7 +73,7 @@ func (s *ResourceService) ServiceStartup(ctx context.Context, _ application.Serv
 	return nil
 }
 
-func (s *ResourceService) ServiceShutdown() error {
+func (s *ResourceService) Shutdown() error {
 	if s.watchMgr != nil {
 		s.watchMgr.StopAll()
 	}
@@ -130,8 +122,8 @@ func (s *ResourceService) StartWatch(contextName, gvr, namespace, resourceVersio
 // sanitizeNamespace strips the namespace for cluster-scoped resources to prevent
 // the dynamic client from hitting invalid namespaced API paths.
 func (s *ResourceService) sanitizeNamespace(gvr, namespace string) string {
-	if namespace == "" {
-		return ""
+	if namespace == "" || s.registry == nil {
+		return namespace
 	}
 	if desc, ok := s.registry.Get(gvr); ok && desc.ClusterScoped {
 		return ""

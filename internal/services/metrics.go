@@ -13,7 +13,6 @@ import (
 	"github.com/Vilsol/klados/internal/config"
 	"github.com/Vilsol/klados/internal/metrics"
 	"github.com/Vilsol/slox"
-	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type MetricsService struct {
@@ -31,8 +30,12 @@ func (s *MetricsService) SetPluginService(ps *PluginService) {
 	s.pluginSvc = ps
 }
 
-func (s *MetricsService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *MetricsService) Startup(ctx context.Context) error {
 	s.ctx = ctx
+	return nil
+}
+
+func (s *MetricsService) Shutdown() error {
 	return nil
 }
 
@@ -284,9 +287,7 @@ func (s *MetricsService) RedetectSources(clusterCtx string) (*metrics.MetricsCap
 
 	s.appService.ClusterManager().SetMetricsCapability(clusterCtx, cap)
 
-	if app := application.Get(); app != nil {
-		app.Event.Emit(fmt.Sprintf("metrics:%s:capabilities", clusterCtx), cap)
-	}
+	s.appService.Emit(fmt.Sprintf("metrics:%s:capabilities", clusterCtx), cap)
 
 	return &cap, nil
 }

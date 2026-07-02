@@ -3,7 +3,7 @@
   import {selectionStore} from "$lib/stores/selection.svelte";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {Check, X, Loader2} from "lucide-svelte";
-  import {DeleteResource, ForceDeleteResource} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {DeleteResource, ForceDeleteResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {shortcutActions} from "$lib/stores/shortcutActions.svelte";
 
   let {

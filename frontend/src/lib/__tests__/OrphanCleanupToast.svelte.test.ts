@@ -7,12 +7,12 @@ const cleanupMock = vi.fn();
 const pushMock = vi.fn();
 const dismissMock = vi.fn();
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/volumebrowserservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/volumebrowserservice.js", () => ({
   TriggerOrphanScan: (...args: unknown[]) => triggerMock(...args),
   CleanupOrphans: (...args: unknown[]) => cleanupMock(...args),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/cluster/models.js", async (importOriginal) => {
+vi.mock("$api/github.com/Vilsol/klados/internal/cluster/models.js", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,

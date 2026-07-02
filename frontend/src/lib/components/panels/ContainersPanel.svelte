@@ -6,7 +6,7 @@
   import {SectionHeader, StatusBadge, DataTable} from "@klados/ui";
   import {toggleSet} from "$lib/utils/collections";
   import {portForwardStore} from "$lib/stores/portforward.svelte";
-  import {StopForward} from "../../../../bindings/github.com/Vilsol/klados/internal/services/portforwardservice.js";
+  import {StopForward} from "$api/github.com/Vilsol/klados/internal/services/portforwardservice.js";
   import {Browser} from "@wailsio/runtime";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {unwrapError} from "$lib/utils/async.js";

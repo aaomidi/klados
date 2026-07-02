@@ -2,7 +2,7 @@
   import { untrack } from 'svelte'
   import VirtualLogViewer from './VirtualLogViewer.svelte'
 
-  interface StreamingConfig { port: number; token: string }
+  interface StreamingConfig { port: number; token: string; origin?: string }
 
   let { streamID, streamingConfig, showTimestamps = false, filename = 'logs', scrollToTopOnLoad = false, fontSize = 13 }: {
     streamID: string
@@ -49,7 +49,8 @@
   }
 
   function buildURL(sid: string) {
-    return `ws://127.0.0.1:${streamingConfig.port}/${streamingConfig.token}/ws/logs/${sid}`
+    const origin = streamingConfig.origin ?? window.location.origin
+    return `${origin.replace(/^http/, 'ws')}/ws/logs/${sid}`
   }
 
   function ingestChunk(chunk: string) {

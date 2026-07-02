@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Module
 
-`github.com/Vilsol/klados` — Go 1.25, Wails v3 alpha.74
+`github.com/Vilsol/klados` — Go 1.26. Transport is ConnectRPC + a server-streamed event hub (see `proto/klados/v1/`, `internal/server/`); Wails v3 remains only as the desktop window shell.
 
 ## Monorepo
 
@@ -28,11 +28,21 @@ task dev
 # Frontend only
 cd frontend && pnpm install && pnpm build
 
-# Go binary (requires CGO for Wails/GTK on Linux)
+# Desktop binary (requires CGO for Wails/GTK on Linux)
 go build .
 
-# Regenerate Wails bindings (after any Go service signature change):
-wails3 generate bindings
+# Headless server binary (no CGO/Wails — what the Docker image builds)
+go build -tags headless .
+
+# Run the self-hosted web server (serves the embedded SPA + ConnectRPC API)
+./klados serve --addr :8080
+
+# Container image + Kubernetes manifests
+docker build -t klados .        # see deploy/kubernetes/klados.yaml
+
+# Generate ConnectRPC code (required after clone and after editing
+# proto/klados/v1/*.proto; outputs gen/ and frontend/src/gen/, both gitignored):
+buf generate
 
 # Regenerate plugin types from JSON Schemas:
 mise run generate:plugin-types
@@ -45,9 +55,9 @@ cd frontend && pnpm check
 
 ```bash
 # Go — packages that don't need CGO (fast)
-go test ./internal/config/ ./internal/session/ ./internal/cluster/ ./internal/streaming/ ./internal/watcher/ -v
+go test ./internal/config/ ./internal/session/ ./internal/cluster/ ./internal/server/ ./internal/watcher/ -v
 
-# Go — all packages (CGO required, imports Wails)
+# Go — all packages
 go test ./internal/... -v
 
 # Single Go test
@@ -73,14 +83,33 @@ Kubernetes API → cluster.Manager (dynamic client)
               resource.ResourceEngine  →  List/Get/Delete via dynamic.Interface
               resource.EnricherRegistry →  per-GVR Enricher injects computed fields
                       ↓
-              watcher.WatchManager    →  emits watch:{ctx}:{gvr}:{ns} Wails events
+              watcher.WatchManager    →  emits watch:{ctx}:{gvr}:{ns} into server.Hub
                       ↓
-              services.ResourceService →  Wails-bound RPC layer
+              server.Hub              →  coalesces bursts (~75ms), fans out to
+                                          Connect server-streams (EventService.Subscribe)
+              services.*              →  RPC layer, adapted by internal/server handlers
+                                          (ConnectRPC over HTTP/2 h2c)
                       ↓
-              frontend ResourceStore  →  subscribes to events, owns items[]
+              frontend ResourceStore  →  subscribes via the @wailsio/runtime shim
+                                          (Vite alias → src/lib/transport/), owns items[]
                       ↓
               ResourceList.svelte     →  TanStack Virtual, CEL column rendering
 ```
+
+Both deployment shapes run this same stack: `klados serve` binds it publicly
+(Kubernetes/remote, port-forwarding disabled via GetCapabilities), the desktop
+shell (`cmd/desktop.go`, default build) runs it on loopback and points a Wails
+webview at it. Logs/exec ride plain WebSockets (`/ws/logs/{id}`,
+`/ws/exec/{id}`) because exec needs full duplex, which browser fetch cannot do.
+
+Desktop-only native features (file dialogs, pop-out OS windows) are provided
+by a `server.Desktop` interface the Wails shell implements; server mode passes
+nil and the handlers return `CodeUnimplemented`, which the frontend catches to
+fall back to web equivalents (file inputs, `window.open`). `GetCapabilities`
+(`capabilitiesStore`) lets the UI hide features up front. `task dev` still hot-
+reloads: `wails3 dev` exports `FRONTEND_DEVSERVER_URL`, and the server reverse-
+proxies non-API requests (including Vite's HMR websocket) to it, keeping the
+API same-origin.
 
 ### Go backend (`internal/`)
 
@@ -91,13 +120,13 @@ Kubernetes API → cluster.Manager (dynamic client)
 | `session/` | State at `$XDG_STATE_HOME/klados/session.json`, debounced 500ms save |
 | `cluster/` | `Manager`: kubeconfig loading, connect/disconnect, health monitor (15s), `DiscoverResources()` emits `discovery:{ctx}:resources` on connect |
 | `resource/` | `Registry` (CEL-validated descriptors), `ResourceEngine` (List/Get/Delete), `EnricherRegistry` + per-resource enrichers that inject display fields into unstructured objects |
-| `watcher/` | `WatchManager`: start/stop per `(ctx, gvr, namespace)` key; 30s grace period before actually stopping; emits `watch:{ctx}:{gvr}:{ns}` events with `{type, object}` payload |
-| `streaming/` | Fiber HTTP server on random localhost port, token auth, emits `streaming:ready` with port+token |
+| `watcher/` | `WatchManager`: start/stop per `(ctx, gvr, namespace)` key; 30s grace period before actually stopping; emits `watch:{ctx}:{gvr}:{ns}` events with `{type, object}` payload (managedFields stripped) |
+| `server/` | The transport: `Hub` (coalescing event bus), ConnectRPC handlers adapting `services/`, WebSocket routes for logs/exec, plugin static serving, SPA serving, `Bootstrap()` service wiring shared by `serve` and desktop |
 | `logs/` | `LogStreamer`: per-container log streaming over WebSocket, 1024-item buffered channel for backpressure |
 | `exec/` | `ExecManager`: interactive shell sessions via WebSocket, resize via text JSON frames |
 | `portforward/` | `Manager`: port-forward lifecycle, emits `portforward:{ctx}:{id}` (per-forward) and `portforward:{ctx}:updated` (aggregate) events |
 | `metrics/` | Metrics collection and aggregation |
-| `services/` | Wails service layer — `AppService` owns `cluster.Manager` and `streaming.Server`; `ResourceService` owns `ResourceEngine` and `WatchManager` |
+| `services/` | Transport-agnostic service layer (`Startup(ctx)`/`Shutdown()` lifecycle, injected `emit`/`on`) — `AppService` owns `cluster.Manager`; `ResourceService` owns `ResourceEngine` and `WatchManager` |
 | `plugin/` | Plugin system: wazero Wasm runtime, manifest validation, permission enforcement, enricher adapter, hot reload via fsnotify. See [PLUGIN_ARCHITECTURE.md](PLUGIN_ARCHITECTURE.md) for full spec. |
 
 ### GVR format
@@ -112,9 +141,13 @@ Dot-separated: `apps.v1.deployments`, `core.v1.pods`, `networking.k8s.io.v1.ingr
 
 Adding a new resource type requires: a `Descriptor` in `internal/resource/builtin.go` (optional enricher), and the descriptor is automatically serialized to the frontend via `GetDescriptors()`. Unknown GVRs get a fallback descriptor (Name, Namespace, Age).
 
-### Wails events
+### Events
 
-All callbacks receive `WailsEvent { name, data }` — always unwrap with `wailsEvent.data`. `Events.On()` returns an unsubscribe function; use it instead of `Events.Off()`.
+Frontend code still imports `Events` from `@wailsio/runtime`, but a Vite alias resolves that to `src/lib/transport/wails-runtime.ts`, which backs `Events.On(topic)` with one Connect server-stream per subscription (auto-reconnect with backoff) and `Events.Emit` with `EventService.Publish`. Callbacks receive `{ name, data }` — always unwrap with `wailsEvent.data`. `Events.On()` returns an unsubscribe function.
+
+### Bindings facade
+
+`frontend/bindings/.../services/*.js` keep their original module paths and export names but are hand-written facades over the generated connect-web clients (`frontend/src/gen/`, from `buf generate`). Structured results ride as `bytes *_json` proto fields decoded with `fromJsonBytes` — byte-identical to the old Wails JSON shapes. After changing a proto, run `buf generate`; after changing a service signature, update the proto + handler + facade.
 
 ### Frontend (`frontend/src/`)
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {UpdateResource} from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {UpdateResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {SectionHeader, KeyValueBadge, EmptyState, KeyValuePairEditor} from "@klados/ui";
   import type {KubernetesResource} from "$lib/types";

@@ -1,6 +1,6 @@
 <script lang="ts">
   import {push} from "svelte-spa-router";
-  import {GetResource} from "../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {descriptorRegistry} from "$lib/registry/index";
   import {registryLoaded} from "$lib/registry/loaded.svelte";
   import ResourceDetail from "$lib/components/ResourceDetail.svelte";
