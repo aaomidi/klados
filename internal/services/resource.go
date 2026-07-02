@@ -68,6 +68,10 @@ func (s *ResourceService) ServiceStartup(ctx context.Context, _ application.Serv
 	s.engine = resource.NewResourceEngine(s.appService.ClusterManager(), enricherReg)
 	s.watchMgr = watcher.NewWatchManager(s.appService.ClusterManager(), enricherReg, emit, s.appService.Ctx())
 
+	cm := s.appService.ClusterManager()
+	cm.OnDisconnect(func(name string) { s.watchMgr.StopContext(name) })
+	cm.OnRecovery(s.watchMgr.ResyncContext)
+
 	templateReg := resource.NewTemplateRegistry()
 	if err := resource.LoadBuiltinTemplates(templateReg); err != nil {
 		return fmt.Errorf("load builtin templates: %w", err)

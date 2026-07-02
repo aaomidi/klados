@@ -260,3 +260,42 @@ func TestWatch_CleanedUpOnConnectionClose(t *testing.T) {
 	}
 	testza.AssertEqual(t, 0, mgr.WatchCountForTest())
 }
+
+func TestStopContext_StopsOnlyThatContext(t *testing.T) {
+	mgr := newTestManager(func(string, any) {})
+	a := &fakeVirtualSource{}
+	mgr.RegisterVirtual("helm.v1.releases", a)
+
+	testza.AssertNoError(t, mgr.StartWatch("ctx-a", "helm.v1.releases", "ns", ""))
+	testza.AssertNoError(t, mgr.StartWatch("ctx-b", "helm.v1.releases", "ns", ""))
+	testza.AssertEqual(t, 2, mgr.WatchCountForTest())
+
+	mgr.StopContext("ctx-a")
+
+	testza.AssertEqual(t, 1, mgr.WatchCountForTest())
+	// ctx-b still runs: StartWatch for it is still a no-op
+	testza.AssertNoError(t, mgr.StartWatch("ctx-b", "helm.v1.releases", "ns", ""))
+	testza.AssertEqual(t, 1, mgr.WatchCountForTest())
+}
+
+func TestResyncContext_EmitsResyncPerWatch(t *testing.T) {
+	var mu sync.Mutex
+	var resyncs []string
+	mgr := newTestManager(func(name string, _ any) {
+		if strings.HasSuffix(name, ":resync") {
+			mu.Lock()
+			resyncs = append(resyncs, name)
+			mu.Unlock()
+		}
+	})
+	src := &fakeVirtualSource{}
+	mgr.RegisterVirtual("helm.v1.releases", src)
+	testza.AssertNoError(t, mgr.StartWatch("ctx", "helm.v1.releases", "ns1", ""))
+
+	mgr.ResyncContext("ctx")
+
+	mu.Lock()
+	defer mu.Unlock()
+	testza.AssertEqual(t, []string{"watch:ctx:helm.v1.releases:ns1:resync"}, resyncs)
+	testza.AssertEqual(t, 0, mgr.WatchCountForTest())
+}

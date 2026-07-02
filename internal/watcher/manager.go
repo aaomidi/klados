@@ -333,6 +333,38 @@ func (m *WatchManager) StopWatch(contextName, gvr, namespace string) {
 	})
 }
 
+// StopContext synchronously tears down every watch for the given context.
+// Returns the keys it stopped so callers can emit follow-up events.
+func (m *WatchManager) StopContext(contextName string) []watchKey {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var stopped []watchKey
+	for key, state := range m.watches {
+		if key.contextName != contextName {
+			continue
+		}
+		if state.graceTimer != nil {
+			state.graceTimer.Stop()
+		}
+		if state.stopVirtual != nil {
+			state.stopVirtual()
+		}
+		state.cancel()
+		delete(m.watches, key)
+		stopped = append(stopped, key)
+	}
+	return stopped
+}
+
+// ResyncContext tears down every watch for the context and asks the frontend
+// to re-list + re-watch via the :resync protocol. Used after a connection
+// recovers: any watch may be wedged on a dead socket or hold a stale client.
+func (m *WatchManager) ResyncContext(contextName string) {
+	for _, key := range m.StopContext(contextName) {
+		m.emitEvent(fmt.Sprintf("watch:%s:%s:%s:resync", key.contextName, key.gvr, key.namespace), nil)
+	}
+}
+
 func (m *WatchManager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()

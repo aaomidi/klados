@@ -108,6 +108,8 @@ type Manager struct {
 	config              *config.Config
 	ctx                 context.Context
 	discoveredResources map[string][]APIResource
+	onDisconnect        []func(string)
+	onRecovery          []func(string)
 }
 
 func NewManager(emitEvent func(string, any), cfg *config.Config, ctx context.Context) *Manager {
@@ -117,6 +119,28 @@ func NewManager(emitEvent func(string, any), cfg *config.Config, ctx context.Con
 		config:              cfg,
 		ctx:                 ctx,
 		discoveredResources: map[string][]APIResource{},
+	}
+}
+
+// OnDisconnect registers fn to run synchronously whenever a context is
+// disconnected (explicit disconnect, re-import replacement).
+func (m *Manager) OnDisconnect(fn func(contextName string)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.onDisconnect = append(m.onDisconnect, fn)
+}
+
+// OnRecovery registers fn to run whenever a connection transitions from error
+// back to connected.
+func (m *Manager) OnRecovery(fn func(contextName string)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.onRecovery = append(m.onRecovery, fn)
+}
+
+func (m *Manager) runHooks(hooks []func(string), contextName string) {
+	for _, fn := range hooks {
+		fn(contextName)
 	}
 }
 
@@ -456,6 +480,12 @@ func (m *Manager) Disconnect(contextName string) error {
 	if conn.cancel != nil {
 		conn.cancel()
 	}
+
+	m.mu.RLock()
+	hooks := append([]func(string){}, m.onDisconnect...)
+	m.mu.RUnlock()
+	m.runHooks(hooks, contextName)
+
 	m.emitStatus(contextName, StatusDisconnected)
 	return nil
 }
@@ -729,6 +759,11 @@ func (m *Manager) healthMonitor(ctx context.Context, conn *Connection) {
 					// CRDs (and any other resources) added or missed during the
 					// outage are picked up.
 					go m.emitDiscovery(ctx, conn.Name)
+
+					m.mu.RLock()
+					recoveryHooks := append([]func(string){}, m.onRecovery...)
+					m.mu.RUnlock()
+					go m.runHooks(recoveryHooks, conn.Name)
 				} else {
 					m.mu.Unlock()
 				}

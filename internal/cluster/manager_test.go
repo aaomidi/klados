@@ -340,3 +340,15 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestManager_DisconnectHook(t *testing.T) {
+	m := NewManager(func(string, any) {}, nil, context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	m.SetConnectionForTest("ctx1", &Connection{connCtx: ctx, cancel: cancel})
+
+	var got []string
+	m.OnDisconnect(func(name string) { got = append(got, name) })
+
+	testza.AssertNoError(t, m.Disconnect("ctx1"))
+	testza.AssertEqual(t, []string{"ctx1"}, got)
+}
