@@ -12,6 +12,14 @@ and `frontend/src`.
 then #1 + #2 together (shared watch-lifecycle root cause), then #7/#8 (frontend
 re-list on reconnect).
 
+> **Status 2026-07-02:** All critical + high findings (#1–#9) fixed — see
+> `docs/superpowers/plans/2026-07-02-liveness-fixes.md` and the six commits
+> `wyzptqzp`…`zzxsoqvv`. Medium findings (#10–#15) remain open. Follow-ups filed
+> from review: discovery singleflight lacks a dirty-rerun flag (CRD event during
+> a finishing loop is dropped); `loadContexts` has a brief unsubscribed window
+> for status events; `ListRaw` (plugin host path) still has no request timeout;
+> virtual watches still use `context.Background()`.
+
 ---
 
 ## Critical
@@ -28,6 +36,9 @@ but `StartWatch` sees the stale key and returns nil without spawning a goroutine
 **Net effect:** one fresh snapshot, then the page silently stops updating forever.
 Fires on exactly the sleep/outage scenarios this audit targets.
 
+**Fixed:** `wyzptqzp` — `removeSelf` (pointer-identity guarded) runs before the
+resync emit and on every goroutine exit; `Expired` now treated like `Gone`.
+
 ### 2. Watches aren't tied to the connection lifecycle — reconnect leaves them on a dead client
 
 Watch goroutines run on `context.WithCancel(context.Background())`
@@ -40,6 +51,9 @@ is a no-op because the key still exists.
 
 **Net effect:** cert rotation via re-import does not actually refresh live watches.
 
+**Fixed:** `wyzptqzp` + `kkvkvvzk` — watches derive from `Connection.Context()`;
+`OnDisconnect`/`OnRecovery` hooks drive `StopContext`/`ResyncContext`.
+
 ### 3. No timeout on `rest.Config` — a half-open TCP connection hangs everything, including the health monitor
 
 `Connect` builds `restCfg` with no `Timeout`, `Dial`, or keepalive tuning
@@ -51,6 +65,11 @@ never triggers. Same exposure in `ResourceEngine` List/Get
 (`internal/watcher/manager.go:194`), so a silent network drop without RST blocks
 until the OS TCP timeout.
 
+**Fixed:** `mkwuoszx` — `probeHealthz` (10s), `CheckHealth` bounded to 20s per
+poll, engine List/Get bounded to 30s. Deliberately no global `rest.Config.Timeout`
+(would kill watch/log streams); a wedged watch is recovered via `ResyncContext`
+on health recovery instead.
+
 ---
 
 ## High — connection & discovery
@@ -61,6 +80,10 @@ until the OS TCP timeout.
 (`internal/services/app.go:83-95`) make one attempt. On failure no connection object
 is stored, so the health monitor never runs — the context is permanently dead until
 the user manually re-clicks.
+
+**Fixed:** `vomwonsq` — startup reconnect retries 5× with exponential backoff.
+(Note: `Connect` makes no network calls, so transient network failures are owned
+by the health monitor + unbounded discovery retry, not this loop.)
 
 ### 5. Discovery gaps remain despite commit 78b367ae
 
@@ -76,6 +99,11 @@ the user manually re-clicks.
 This is the "CRDs don't get loaded after connection issues" complaint from bugs.txt,
 only partially fixed.
 
+**Fixed:** `vomwonsq` — `DiscoverResources` propagates partial-failure errors
+(4 callers made partial-tolerant); `discoverLoop` retries until clean success
+(capped backoff, per-context singleflight); `watchCRDs` triggers debounced
+re-discovery on runtime CRD changes.
+
 ### 6. No kubeconfig file watching
 
 `LoadKubeconfigs` runs at startup and on explicit import only
@@ -83,6 +111,10 @@ only partially fixed.
 rotates certs/tokens in `~/.kube/config`, the app keeps stale credentials until manual
 re-import. (Exec-plugin/OIDC token refresh *does* work via client-go's transport, so
 this only bites for rotated CA/client certs written to disk.)
+
+**Fixed:** `nxsqpwpu` — fsnotify watch over kubeconfig sources with 500ms debounce;
+per-context credential-hash diff; changed + connected contexts get the
+disconnect→connect→activate flow; `kubeconfigs:updated` refreshes the frontend.
 
 ---
 
@@ -98,16 +130,28 @@ but triggers no re-list, and `startNamespaceWatch` is idempotent by context name
 won't restart (`frontend/src/lib/stores/cluster.svelte.ts:168-174, 263-288`).
 Combined with #2, a recovered connection shows permanently stale data.
 
+**Fixed:** `kkvkvvzk` (backend `ResyncContext` on recovery) + `zzxsoqvv` —
+`ResourceStore` subscribes to connection status and re-lists on any
+non-connected→connected transition (covers the re-import
+disconnected→connecting→connected sequence).
+
 ### 8. Namespace watch (bcf6b3ed fix) has no resync recovery
 
 The frontend subscribes to the namespace watch event but not its `:resync` variant
 (`frontend/src/lib/stores/cluster.svelte.ts:270-287`). A 410 on that global watch
 kills dropdown updates silently — the original bug returns after any long sleep.
 
+**Fixed:** `zzxsoqvv` — namespace watch subscribes to its `:resync` event
+(reload + re-watch).
+
 ### 9. `nsWatch` keyed by context name only
 
 `frontend/src/lib/stores/cluster.svelte.ts:264` — re-importing a kubeconfig where the
 same context name now points at a different cluster short-circuits the watch restart.
+
+**Fixed:** `zzxsoqvv` — `startNamespaceWatch` gains a `force` parameter; the
+status handler force-restarts the watch whenever the active context transitions
+back to connected.
 
 ---
 
