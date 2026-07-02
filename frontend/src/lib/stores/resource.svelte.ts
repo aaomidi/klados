@@ -15,7 +15,7 @@ function resourceKey(obj: KubernetesResource): string {
   return `${obj.metadata?.namespace ?? ""}/${obj.metadata?.name ?? ""}`;
 }
 
-class ResourceStore {
+export class ResourceStore {
   items = $state<KubernetesResource[]>([]);
   loading = $state(false);
   error = $state<string | null>(null);
@@ -28,6 +28,8 @@ class ResourceStore {
   private resyncEventName = "";
   private unsub: (() => void) | null = null;
   private unsubResync: (() => void) | null = null;
+  private unsubStatus: (() => void) | null = null;
+  private lastStatus = "";
   private generation = 0;
 
   async start(contextName: string, gvr: string, namespace: string) {
@@ -51,6 +53,24 @@ class ResourceStore {
       this.resync(contextName, gvr, namespace, gen).catch((e) =>
         log.warn("resync failed", {contextName, gvr, namespace, error: String(e)}),
       );
+    });
+
+    // Re-list when the backend connection recovers: watches may have died or
+    // been replaced (kubeconfig re-import) while this page was open.
+    this.lastStatus = "";
+    this.unsubStatus = Events.On(`status:${contextName}:connection`, (wailsEvent: unknown) => {
+      const status = ((wailsEvent as {data?: unknown})?.data ?? wailsEvent) as string;
+      const prev = this.lastStatus;
+      this.lastStatus = status;
+      // prev "" = no status seen since start() — the page-load connected event.
+      // Any other non-connected prev (error, disconnected, connecting) means the
+      // connection dropped or was replaced, so re-list.
+      if (status === "connected" && prev !== "" && prev !== "connected") {
+        log.info("connection recovered — re-listing", {contextName, gvr});
+        this.loadAndWatch(contextName, gvr, namespace, gen, performance.now()).catch((e) =>
+          log.warn("reconnect re-list failed", {contextName, gvr, error: String(e)}),
+        );
+      }
     });
 
     await this.loadAndWatch(contextName, gvr, namespace, gen, performance.now());
@@ -127,6 +147,11 @@ class ResourceStore {
       this.unsubResync();
       this.unsubResync = null;
     }
+    if (this.unsubStatus) {
+      this.unsubStatus();
+      this.unsubStatus = null;
+    }
+    this.lastStatus = "";
     if (this.contextName && this.gvr) {
       StopWatch(this.contextName, this.gvr, this.namespace).catch((e) => log.warn("StopWatch failed", {error: String(e)}));
     }

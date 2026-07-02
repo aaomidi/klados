@@ -68,6 +68,12 @@ function emitNamespaceWatch(ctx: string, type: string, name: string) {
   handler({data: {type, object: {metadata: {name}}}});
 }
 
+function invokeStatusHandler(ctx: string, status: string) {
+  const call = mockedEventsOn.mock.calls.find((c) => c[0] === `status:${ctx}:connection`);
+  if (!call) throw new Error(`no status handler for ${ctx}`);
+  (call[1] as (e: unknown) => void)({data: status});
+}
+
 describe("clusterStore", () => {
   beforeEach(async () => {
     // Tear down any namespace watch left active by the previous test before
@@ -220,5 +226,39 @@ describe("clusterStore", () => {
 
     expect(clusterStore.getSelectedNamespaces("ctx1")).toEqual(["kube-system"]);
     expect(clusterStore.getSelectedNamespaces("ctx2")).toEqual([]);
+  });
+
+  it("reconnect of the active context restarts the namespace watch", async () => {
+    mockedListContexts.mockResolvedValue([
+      {name: "ctx1", cluster: "c1", user: "u1", namespace: "default", status: ConnectionStatus.StatusConnected},
+    ] as never);
+    mockedListNamespaces.mockResolvedValue(["default"] as never);
+    await clusterStore.loadContexts(); // registers status handler + auto-restores ctx1
+
+    mockedStartWatch.mockClear();
+    mockedStopWatch.mockClear();
+    invokeStatusHandler("ctx1", "error");
+    invokeStatusHandler("ctx1", "connected");
+
+    await vi.waitFor(() => {
+      expect(mockedStopWatch).toHaveBeenCalledWith("ctx1", "core.v1.namespaces", "");
+      expect(mockedStartWatch).toHaveBeenCalledWith("ctx1", "core.v1.namespaces", "", "");
+    });
+  });
+
+  it("namespace watch :resync reloads the list and re-watches", async () => {
+    mockedListNamespaces.mockResolvedValue(["default"] as never);
+    await clusterStore.setActiveContext("ctx1");
+    mockedListNamespaces.mockClear();
+    mockedStartWatch.mockClear();
+
+    const call = mockedEventsOn.mock.calls.find((c) => c[0] === "watch:ctx1:core.v1.namespaces::resync");
+    expect(call).toBeDefined();
+    (call![1] as () => void)();
+
+    await vi.waitFor(() => {
+      expect(mockedListNamespaces).toHaveBeenCalledWith("ctx1");
+      expect(mockedStartWatch).toHaveBeenCalledWith("ctx1", "core.v1.namespaces", "", "");
+    });
   });
 });

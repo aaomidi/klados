@@ -60,7 +60,7 @@ class ClusterStore {
   private kubeconfigsUnsub: (() => void) | null = null;
   // Live watch on the active context's namespaces so the header dropdown
   // reflects namespaces added/removed out-of-band (kubectl, other tools).
-  private nsWatch: {ctx: string; unsub: () => void} | null = null;
+  private nsWatch: {ctx: string; unsub: () => void; unsubResync: () => void} | null = null;
 
   /** Returns false when either the global read-only toggle is on or detected RBAC permits no writes. */
   canMutate(): boolean {
@@ -173,9 +173,15 @@ class ClusterStore {
         this.connectionStatus[ctx.name] = statusToString[ctx.status] ?? "disconnected";
         const unsub = Events.On(`status:${ctx.name}:connection`, (wailsEvent: unknown) => {
           const status = ((wailsEvent as {data?: unknown})?.data ?? wailsEvent) as string;
+          const prev = this.connectionStatus[ctx.name];
           this.connectionStatus[ctx.name] = (status as ConnectionStatusType) ?? "disconnected";
-          if (status === "connected" && !this.activeContext) {
+          if (status !== "connected") return;
+          if (!this.activeContext) {
             this.restoreContext(ctx.name);
+          } else if (this.activeContext === ctx.name && prev !== "connected") {
+            // Recovered or replaced connection: namespaces may have changed and
+            // the old watch is gone — restart it unconditionally.
+            this.startNamespaceWatch(ctx.name, true);
           }
         });
         this.statusUnsubs.push(unsub);
@@ -266,8 +272,8 @@ class ClusterStore {
    * core.v1.namespaces, so namespaces created/deleted outside the app update the
    * header dropdown. Idempotent for the already-watched context.
    */
-  private async startNamespaceWatch(ctxName: string) {
-    if (this.nsWatch?.ctx === ctxName) return;
+  private async startNamespaceWatch(ctxName: string, force = false) {
+    if (!force && this.nsWatch?.ctx === ctxName) return;
     this.stopNamespaceWatch();
 
     await this.loadNamespaces(ctxName);
@@ -284,7 +290,16 @@ class ClusterStore {
         this.namespaces[ctxName] = [...current, name].sort();
       }
     });
-    this.nsWatch = {ctx: ctxName, unsub};
+    // Backend emits :resync when the namespace watch hit a 410 and died —
+    // reload the list and start a fresh watch or the dropdown goes stale.
+    const unsubResync = Events.On(`${eventName}:resync`, () => {
+      log.info("namespace watch resync", {ctxName});
+      this.loadNamespaces(ctxName);
+      StartWatch(ctxName, "core.v1.namespaces", "", "").catch((e) =>
+        log.warn("namespace watch restart failed", {ctxName, error: String(e)}),
+      );
+    });
+    this.nsWatch = {ctx: ctxName, unsub, unsubResync};
 
     // resourceVersion "" replays existing namespaces as ADDED (idempotent) and
     // then streams subsequent changes.
@@ -295,9 +310,10 @@ class ClusterStore {
 
   private stopNamespaceWatch() {
     if (!this.nsWatch) return;
-    const {ctx, unsub} = this.nsWatch;
+    const {ctx, unsub, unsubResync} = this.nsWatch;
     this.nsWatch = null;
     unsub();
+    unsubResync();
     StopWatch(ctx, "core.v1.namespaces", "").catch((e) => log.warn("namespace watch stop failed", {ctx, error: String(e)}));
   }
 

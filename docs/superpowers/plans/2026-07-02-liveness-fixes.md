@@ -1274,7 +1274,11 @@ In `start()`, after the resync subscription (line 54):
       const status = ((wailsEvent as {data?: unknown})?.data ?? wailsEvent) as string;
       const prev = this.lastStatus;
       this.lastStatus = status;
-      if (status === "connected" && (prev === "error" || prev === "disconnected")) {
+      // prev !== "" (no status seen yet) keeps the initial page-load connect
+      // from re-listing; any other non-connected prev (error, disconnected,
+      // connecting — the re-import flow emits disconnected→connecting→connected)
+      // must trigger the re-list.
+      if (status === "connected" && prev !== "" && prev !== "connected") {
         log.info("connection recovered — re-listing", {contextName, gvr});
         this.loadAndWatch(contextName, gvr, namespace, gen, performance.now()).catch((e) =>
           log.warn("reconnect re-list failed", {contextName, gvr, error: String(e)}),
