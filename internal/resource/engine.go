@@ -23,6 +23,10 @@ type ConnectionProvider interface {
 	GetConnection(contextName string) (*cluster.Connection, error)
 }
 
+// requestTimeout bounds a single List/Get so a dead socket surfaces as an
+// error instead of a frozen UI. A var so tests can shorten it.
+var requestTimeout = 30 * time.Second
+
 // VirtualBackend implements List/Get for a synthetic GVR that isn't backed by
 // the dynamic Kubernetes client (e.g. Helm releases). Engine dispatches to a
 // registered backend before falling through to the dynamic path.
@@ -114,6 +118,9 @@ func (e *ResourceEngine) enrich(contextName, gvr string, item *unstructured.Unst
 }
 
 func (e *ResourceEngine) List(ctx context.Context, contextName, gvr, namespace string) ([]map[string]any, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
+	defer cancel()
+
 	t0 := time.Now()
 
 	if backend, ok := e.lookupVirtual(gvr); ok {
@@ -192,6 +199,9 @@ func (e *ResourceEngine) ListRaw(ctx context.Context, contextName, gvr, namespac
 }
 
 func (e *ResourceEngine) Get(ctx context.Context, contextName, gvr, namespace, name string) (map[string]any, error) {
+	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
+	defer cancel()
+
 	if backend, ok := e.lookupVirtual(gvr); ok {
 		obj, err := backend.Get(ctx, contextName, namespace, name)
 		if err != nil {

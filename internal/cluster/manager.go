@@ -731,6 +731,17 @@ func (m *Manager) DisconnectAll() error {
 	return nil
 }
 
+// healthProbeTimeout bounds a single /healthz probe. A var so tests can
+// shorten it. Without a deadline, a half-open TCP connection after laptop
+// sleep wedges the health monitor loop permanently.
+var healthProbeTimeout = 10 * time.Second
+
+func probeHealthz(ctx context.Context, conn *Connection) ([]byte, error) {
+	probeCtx, cancel := context.WithTimeout(ctx, healthProbeTimeout)
+	defer cancel()
+	return conn.Clientset.Discovery().RESTClient().Get().AbsPath("/healthz").Do(probeCtx).Raw()
+}
+
 func (m *Manager) healthMonitor(ctx context.Context, conn *Connection) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
@@ -740,7 +751,7 @@ func (m *Manager) healthMonitor(ctx context.Context, conn *Connection) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			body, err := conn.Clientset.Discovery().RESTClient().Get().AbsPath("/healthz").Do(ctx).Raw()
+			body, err := probeHealthz(ctx, conn)
 			if err != nil {
 				slox.Warn(m.ctx, "health check failed", "context", conn.Name, "error", err)
 				m.mu.Lock()
@@ -780,9 +791,14 @@ func (m *Manager) emitStatus(contextName string, status ConnectionStatus) {
 }
 
 func (m *Manager) startHealthPoller(ctx context.Context, contextName string, conn *Connection) {
-	// Emit immediately on activate, then every 10s
-	h := CheckHealth(ctx, conn)
-	m.emitEvent(fmt.Sprintf("cluster:%s:health", contextName), h)
+	check := func() {
+		// CheckHealth makes 5 sequential API calls; bound the whole batch so a
+		// dead socket surfaces as an error instead of wedging the poller.
+		hctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+		defer cancel()
+		m.emitEvent(fmt.Sprintf("cluster:%s:health", contextName), CheckHealth(hctx, conn))
+	}
+	check()
 
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -791,8 +807,7 @@ func (m *Manager) startHealthPoller(ctx context.Context, contextName string, con
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			h := CheckHealth(ctx, conn)
-			m.emitEvent(fmt.Sprintf("cluster:%s:health", contextName), h)
+			check()
 		}
 	}
 }
