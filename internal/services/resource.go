@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Vilsol/slox"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	batchv1 "k8s.io/api/batch/v1"
 	errors "k8s.io/apimachinery/pkg/api/errors"
@@ -143,7 +144,14 @@ func (s *ResourceService) StopWatch(contextName, gvr, namespace string) {
 }
 
 func (s *ResourceService) ListAPIResources(contextName string) ([]cluster.APIResource, error) {
-	return s.appService.ClusterManager().DiscoverResources(contextName)
+	discovered, err := s.appService.ClusterManager().DiscoverResources(contextName)
+	if err != nil && len(discovered) == 0 {
+		return nil, err
+	}
+	if err != nil {
+		slox.Warn(s.ctx, "using partial discovery results", "context", contextName, "error", err)
+	}
+	return discovered, nil
 }
 
 func (s *ResourceService) GetDescriptors() []*resource.Descriptor {
@@ -578,8 +586,11 @@ func bareSkeletonTemplate(gvr string) resource.Template {
 
 func (s *ResourceService) ApplyManifest(contextName, yamlContent string) ([]resource.ApplyResult, error) {
 	discovered, err := s.appService.ClusterManager().DiscoverResources(contextName)
-	if err != nil {
+	if err != nil && len(discovered) == 0 {
 		return nil, fmt.Errorf("discover resources: %w", err)
+	}
+	if err != nil {
+		slox.Warn(s.ctx, "using partial discovery results", "context", contextName, "error", err)
 	}
 
 	decoder := yaml.NewDecoder(strings.NewReader(yamlContent))

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Vilsol/slox"
 	"github.com/adrg/xdg"
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -41,12 +42,16 @@ func (s *SchemaService) GetSchema(contextName, gvr, kind string) (map[string]any
 	// Derive kind from GVR via discovery when not provided.
 	if kind == "" {
 		resources, err := s.appSvc.ClusterManager().DiscoverResources(contextName)
-		if err == nil {
-			for _, r := range resources {
-				if r.GVR == gvr {
-					kind = r.Kind
-					break
-				}
+		if err != nil && len(resources) == 0 {
+			return nil, fmt.Errorf("discover resources: %w", err)
+		}
+		if err != nil {
+			slox.Warn(s.ctx, "using partial discovery results", "context", contextName, "error", err)
+		}
+		for _, r := range resources {
+			if r.GVR == gvr {
+				kind = r.Kind
+				break
 			}
 		}
 	}

@@ -235,7 +235,7 @@ func (s *HelmService) GetHooks(ctx context.Context, contextName, namespace, rele
 }
 
 func (s *HelmService) GetOwnedResources(ctx context.Context, contextName, namespace, releaseName string, scanAll bool) ([]helm.OwnedRef, error) {
-	getter := &engineResourceGetter{engine: s.engine, cluster: s.cluster}
+	getter := &engineResourceGetter{engine: s.engine, cluster: s.cluster, ctx: s.ctx}
 	return s.backend.GetOwnedResources(ctx, contextName, namespace, releaseName, scanAll, getter)
 }
 
@@ -415,6 +415,7 @@ func (a *clusterSecretAdapter) SecretsClient(contextName string) (kubernetes.Int
 type engineResourceGetter struct {
 	engine  *resource.ResourceEngine
 	cluster *cluster.Manager
+	ctx     context.Context
 }
 
 func (g *engineResourceGetter) Exists(ctx context.Context, contextName, gvr, namespace, name string) (bool, error) {
@@ -456,8 +457,11 @@ func (g *engineResourceGetter) KnownGVRs(contextName string) []string {
 		return nil
 	}
 	resources, err := g.cluster.DiscoverResources(contextName)
-	if err != nil {
+	if err != nil && len(resources) == 0 {
 		return nil
+	}
+	if err != nil {
+		slox.Warn(g.ctx, "using partial discovery results", "context", contextName, "error", err)
 	}
 	out := make([]string, 0, len(resources))
 	for _, r := range resources {

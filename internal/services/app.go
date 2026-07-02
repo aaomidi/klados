@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/Vilsol/slox"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -81,9 +82,22 @@ func (a *AppService) ServiceStartup(ctx context.Context, options application.Ser
 		}
 		if known {
 			go func(name string) {
-				if err := a.clusterMgr.Connect(a.ctx, name); err != nil {
-					slox.Warn(a.ctx, "failed to reconnect cluster", "context", name, "error", err)
-					return
+				backoff := 2 * time.Second
+				for attempt := 1; ; attempt++ {
+					err := a.clusterMgr.Connect(a.ctx, name)
+					if err == nil {
+						break
+					}
+					slox.Warn(a.ctx, "startup reconnect failed", "context", name, "attempt", attempt, "error", err)
+					if attempt >= 5 {
+						return
+					}
+					select {
+					case <-a.ctx.Done():
+						return
+					case <-time.After(backoff):
+					}
+					backoff *= 2
 				}
 				if err := a.clusterMgr.Activate(a.ctx, name); err != nil {
 					slox.Warn(a.ctx, "failed to activate cluster on startup", "context", name, "error", err)

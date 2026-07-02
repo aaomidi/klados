@@ -9,42 +9,44 @@ import (
 	"github.com/MarvinJWendt/testza"
 )
 
-func TestDiscoverWithRetry_SucceedsAfterTransientFailures(t *testing.T) {
+func TestDiscoverLoop_EmitsPartialAndRetriesUntilFullSuccess(t *testing.T) {
+	var emitted [][]APIResource
 	calls := 0
-	res, err := discoverWithRetry(context.Background(), 5, time.Millisecond, func() ([]APIResource, error) {
+	discover := func() ([]APIResource, error) {
 		calls++
 		if calls < 3 {
-			return nil, fmt.Errorf("transient")
+			return []APIResource{{GVR: "apps.v1.deployments"}}, fmt.Errorf("group xyz unavailable")
 		}
-		return []APIResource{{GVR: "core.v1.pods"}}, nil
-	})
+		return []APIResource{{GVR: "apps.v1.deployments"}, {GVR: "xyz.v1.things"}}, nil
+	}
 
-	testza.AssertNoError(t, err)
+	discoverLoop(context.Background(), time.Millisecond, 10*time.Millisecond, discover,
+		func(r []APIResource) { emitted = append(emitted, r) })
+
 	testza.AssertEqual(t, 3, calls)
-	testza.AssertEqual(t, 1, len(res))
+	// partial results are emitted every round so the UI isn't empty during retry
+	testza.AssertEqual(t, 3, len(emitted))
+	testza.AssertEqual(t, 2, len(emitted[2]))
 }
 
-func TestDiscoverWithRetry_GivesUpAfterMaxAttempts(t *testing.T) {
-	calls := 0
-	_, err := discoverWithRetry(context.Background(), 3, time.Millisecond, func() ([]APIResource, error) {
-		calls++
-		return nil, fmt.Errorf("boom")
-	})
-
-	testza.AssertNotNil(t, err)
-	testza.AssertEqual(t, 3, calls)
-}
-
-func TestDiscoverWithRetry_StopsOnContextCancel(t *testing.T) {
+func TestDiscoverLoop_StopsOnContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
 	calls := 0
-	_, err := discoverWithRetry(ctx, 5, time.Second, func() ([]APIResource, error) {
+	discover := func() ([]APIResource, error) {
 		calls++
-		return nil, fmt.Errorf("boom")
-	})
+		if calls == 2 {
+			cancel()
+		}
+		return nil, fmt.Errorf("still down")
+	}
+	discoverLoop(ctx, time.Millisecond, 10*time.Millisecond, discover, func([]APIResource) {})
+	testza.AssertTrue(t, calls >= 2 && calls <= 3) // returns promptly after cancel
+}
 
-	testza.AssertNotNil(t, err)
-	testza.AssertEqual(t, 1, calls)
+func TestDiscoverLoop_SuccessEmitsOnceEvenWhenEmpty(t *testing.T) {
+	emits := 0
+	discoverLoop(context.Background(), time.Millisecond, 10*time.Millisecond,
+		func() ([]APIResource, error) { return nil, nil },
+		func([]APIResource) { emits++ })
+	testza.AssertEqual(t, 1, emits)
 }

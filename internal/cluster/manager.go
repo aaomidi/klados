@@ -108,6 +108,7 @@ type Manager struct {
 	config              *config.Config
 	ctx                 context.Context
 	discoveredResources map[string][]APIResource
+	discoveryInFlight   map[string]bool
 	onDisconnect        []func(string)
 	onRecovery          []func(string)
 }
@@ -119,6 +120,7 @@ func NewManager(emitEvent func(string, any), cfg *config.Config, ctx context.Con
 		config:              cfg,
 		ctx:                 ctx,
 		discoveredResources: map[string][]APIResource{},
+		discoveryInFlight:   map[string]bool{},
 	}
 }
 
@@ -343,6 +345,7 @@ func (m *Manager) Activate(ctx context.Context, contextName string) error {
 	go m.fetchAndStorePermissions(monitorCtx, contextName, conn)
 	go m.startHealthPoller(monitorCtx, contextName, conn)
 	go m.emitDiscovery(monitorCtx, contextName)
+	go m.watchCRDs(monitorCtx, contextName, conn)
 	go func() {
 		sv, err := conn.Clientset.Discovery().ServerVersion()
 		if err != nil {
@@ -429,39 +432,61 @@ func (m *Manager) IsActivated(contextName string) bool {
 	return false
 }
 
-// discoverWithRetry runs discover with bounded exponential backoff, returning
-// on the first success. It gives up after attempts tries or when ctx is
-// cancelled, surfacing the last error.
-func discoverWithRetry(ctx context.Context, attempts int, backoff time.Duration, discover func() ([]APIResource, error)) ([]APIResource, error) {
-	var lastErr error
-	for attempt := 1; attempt <= attempts; attempt++ {
-		res, err := discover()
+// discoverLoop retries discover until it fully succeeds or ctx is cancelled,
+// with capped exponential backoff. Partial results (err != nil, len > 0) are
+// emitted every round so the UI has something during an outage; a clean
+// success emits (even if empty) and ends the loop.
+func discoverLoop(ctx context.Context, backoff, maxBackoff time.Duration, discover func() ([]APIResource, error), emit func([]APIResource)) {
+	for {
+		resources, err := discover()
 		if err == nil {
-			return res, nil
+			emit(resources)
+			return
 		}
-		lastErr = err
-		if attempt == attempts {
-			break
+		if len(resources) > 0 {
+			emit(resources)
 		}
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return
 		case <-time.After(backoff):
 		}
-		backoff *= 2
+		if backoff < maxBackoff {
+			backoff *= 2
+		}
 	}
-	return nil, lastErr
 }
 
 func (m *Manager) emitDiscovery(ctx context.Context, contextName string) {
-	resources, err := discoverWithRetry(ctx, 5, 2*time.Second, func() ([]APIResource, error) {
-		return m.DiscoverResources(contextName)
-	})
-	if err != nil {
-		slox.Warn(m.ctx, "resource discovery failed", "context", contextName, "error", err)
+	// Singleflight per context: Activate, health recovery and CRD-change
+	// debounce can all trigger discovery — one retry loop is enough.
+	m.mu.Lock()
+	if m.discoveryInFlight[contextName] {
+		m.mu.Unlock()
 		return
 	}
-	m.emitEvent(fmt.Sprintf("discovery:%s:resources", contextName), resources)
+	if m.discoveryInFlight == nil {
+		m.discoveryInFlight = map[string]bool{}
+	}
+	m.discoveryInFlight[contextName] = true
+	m.mu.Unlock()
+	defer func() {
+		m.mu.Lock()
+		delete(m.discoveryInFlight, contextName)
+		m.mu.Unlock()
+	}()
+
+	discoverLoop(ctx, 2*time.Second, time.Minute,
+		func() ([]APIResource, error) {
+			res, err := m.DiscoverResources(contextName)
+			if err != nil {
+				slox.Warn(m.ctx, "resource discovery incomplete, will retry", "context", contextName, "error", err)
+			}
+			return res, err
+		},
+		func(res []APIResource) {
+			m.emitEvent(fmt.Sprintf("discovery:%s:resources", contextName), res)
+		})
 }
 
 func (m *Manager) Disconnect(contextName string) error {
@@ -614,6 +639,9 @@ func (m *Manager) DiscoverResources(contextName string) ([]APIResource, error) {
 	if err != nil && len(lists) == 0 {
 		return nil, err
 	}
+	// err may be non-nil with partial lists (some API groups down). Fall
+	// through and return the partial set WITH the error so callers can both
+	// use it and know to retry.
 
 	var primary []APIResource
 	for _, list := range lists {
@@ -654,7 +682,7 @@ func (m *Manager) DiscoverResources(contextName string) ([]APIResource, error) {
 	m.discoveredResources[contextName] = primary
 	m.mu.Unlock()
 
-	return primary, nil
+	return primary, err
 }
 
 // HasScaleSubresource returns true when the given GVR declared a scale
