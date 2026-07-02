@@ -35,10 +35,22 @@ vi.mock("@klados/ui", () => ({
 
 import LogsPanel from "$lib/components/panels/LogsPanel.svelte";
 
+// A running pod: LogsPanel gates log streaming on container readiness
+// (state.running / terminated in status), so the fixture must report status
+// for the auto-start path to fire.
 const podObj = {
   spec: {
     containers: [{name: "app"}, {name: "sidecar"}],
     initContainers: [{name: "init-setup"}],
+  },
+  status: {
+    containerStatuses: [
+      {name: "app", state: {running: {startedAt: "2026-01-01T00:00:00Z"}}},
+      {name: "sidecar", state: {running: {startedAt: "2026-01-01T00:00:00Z"}}},
+    ],
+    initContainerStatuses: [
+      {name: "init-setup", state: {terminated: {exitCode: 0}}},
+    ],
   },
 };
 
