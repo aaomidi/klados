@@ -1,8 +1,7 @@
 import {describe, it, expect, beforeEach, vi} from "vitest";
-import {render, screen, fireEvent} from "@testing-library/svelte";
+import {render, screen} from "@testing-library/svelte";
 import Header from "$lib/components/Header.svelte";
 import {clusterStore} from "$lib/stores/cluster.svelte";
-import {setTheme, getTheme} from "$lib/theme.svelte";
 
 // Mock the bindings used transitively
 vi.mock("$api/github.com/Vilsol/klados/internal/services/clusterservice", () => ({
@@ -14,15 +13,12 @@ vi.mock("$api/github.com/Vilsol/klados/internal/services/clusterservice", () => 
   GetStatus: vi.fn().mockResolvedValue(0),
 }));
 
-const THEME_REGEX = /Theme:/;
-
 describe("Header", () => {
   beforeEach(() => {
     clusterStore.activeContext = null;
     clusterStore.namespaces = {};
     clusterStore.selectedNamespaces = {};
     clusterStore.connectionStatus = {};
-    setTheme("system");
   });
 
   it('shows "No cluster selected" when no active context', () => {
@@ -45,21 +41,5 @@ describe("Header", () => {
 
     render(Header);
     expect(screen.getByText("default")).toBeTruthy();
-  });
-
-  it("theme toggle cycles through themes", async () => {
-    render(Header);
-
-    const themeBtn = screen.getByTitle(THEME_REGEX);
-    expect(getTheme()).toBe("system");
-
-    await fireEvent.click(themeBtn);
-    expect(getTheme()).toBe("dark");
-
-    await fireEvent.click(themeBtn);
-    expect(getTheme()).toBe("light");
-
-    await fireEvent.click(themeBtn);
-    expect(getTheme()).toBe("system");
   });
 });

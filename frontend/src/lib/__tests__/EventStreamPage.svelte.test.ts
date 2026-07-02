@@ -84,17 +84,34 @@ vi.mock("$api/github.com/Vilsol/klados/internal/config/models.js", () => ({
   SortPrefs: vi.fn(),
 }));
 
+// DataTable drives the virtualizer imperatively via setOptions() and expects
+// the store to re-emit when the row count changes, so the mock must reflect
+// count updates (the toggle tests change how many rows are visible).
 vi.mock("@tanstack/svelte-virtual", () => ({
-  createVirtualizer: ({count}: {count: number}) => ({
-    subscribe: (fn: (v: unknown) => void) => {
-      fn({
-        getTotalSize: () => count * 36,
-        getVirtualItems: () =>
-          Array.from({length: count}, (_, i) => ({index: i, start: i * 36, size: 36})),
-      });
-      return () => {};
-    },
-  }),
+  createVirtualizer: ({count: initialCount}: {count: number}) => {
+    let currentCount = initialCount;
+    let emit: ((v: unknown) => void) | null = null;
+    const buildValue = () => ({
+      getTotalSize: () => currentCount * 36,
+      getVirtualItems: () =>
+        Array.from({length: currentCount}, (_, i) => ({index: i, start: i * 36, size: 36})),
+      setOptions: (opts: {count?: number}) => {
+        if (opts.count !== undefined && opts.count !== currentCount) {
+          currentCount = opts.count;
+          emit?.(buildValue());
+        }
+      },
+    });
+    return {
+      subscribe: (fn: (v: unknown) => void) => {
+        emit = fn;
+        fn(buildValue());
+        return () => {
+          emit = null;
+        };
+      },
+    };
+  },
 }));
 
 vi.mock("@klados/ui", () => ({
