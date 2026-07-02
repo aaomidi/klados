@@ -26,7 +26,7 @@ vi.mock("uplot/dist/uPlot.min.css", () => ({}));
 const mockGetCapabilities = vi.hoisted(() => vi.fn());
 const mockGetResourceMetrics = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/metricsservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/metricsservice.js", () => ({
   GetCapabilities: mockGetCapabilities,
   GetResourceMetrics: mockGetResourceMetrics,
 }));

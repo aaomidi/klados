@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {SetKeybinding, ResetKeybindings} from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
+  import {SetKeybinding, ResetKeybindings} from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
   import {shortcutStore, type ShortcutDef} from "$lib/stores/shortcuts.svelte";
 
   let listeningId = $state<string | null>(null);

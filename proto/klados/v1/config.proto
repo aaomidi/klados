@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// ConfigService mirrors internal/services.ConfigService. Struct-valued
+// preferences ride as JSON bytes so the config schema can evolve without
+// proto churn; the frontend already consumes these shapes.
+service ConfigService {
+  rpc GetTheme(EmptyRequest) returns (ConfigStringResponse);
+  rpc SetTheme(ConfigSetThemeRequest) returns (EmptyResponse);
+  rpc GetTerminalWebGL(EmptyRequest) returns (ConfigBoolResponse);
+  rpc SetTerminalWebGL(ConfigSetBoolRequest) returns (EmptyResponse);
+  rpc GetInsecureSkipTLSVerify(EmptyRequest) returns (ConfigBoolResponse);
+  rpc SetInsecureSkipTLSVerify(ConfigSetBoolRequest) returns (EmptyResponse);
+  rpc GetCompactRows(EmptyRequest) returns (ConfigBoolResponse);
+  rpc SetCompactRows(ConfigSetBoolRequest) returns (EmptyResponse);
+  rpc SetContextualAutocomplete(ConfigSetBoolRequest) returns (EmptyResponse);
+  rpc GetConfig(EmptyRequest) returns (JsonResponse);
+  rpc GetResolvedPrefs(ContextRequest) returns (JsonResponse);
+  rpc GetColumnPrefs(ConfigGVRRequest) returns (JsonResponse);
+  rpc SetColumnPrefs(ConfigSetColumnPrefsRequest) returns (EmptyResponse);
+  rpc DeleteColumnPrefs(ConfigGVRRequest) returns (EmptyResponse);
+  rpc SetAccentColor(ConfigSetStringRequest) returns (EmptyResponse);
+  rpc SetFontSize(ConfigSetFontSizeRequest) returns (EmptyResponse);
+  rpc SetStartupBehavior(ConfigSetStartupBehaviorRequest) returns (EmptyResponse);
+  rpc SetKeybinding(ConfigSetKeybindingRequest) returns (EmptyResponse);
+  rpc ResetKeybindings(EmptyRequest) returns (EmptyResponse);
+  rpc GetClusterPrefs(ContextRequest) returns (JsonResponse);
+  rpc SetClusterPrefs(ConfigSetClusterPrefsRequest) returns (EmptyResponse);
+  rpc DeleteClusterPrefs(ContextRequest) returns (EmptyResponse);
+  rpc GetSavedFilters(ConfigGVRRequest) returns (JsonResponse);
+  rpc SetSavedFilters(ConfigSetSavedFiltersRequest) returns (EmptyResponse);
+  rpc SetClusterSavedFilters(ConfigSetClusterSavedFiltersRequest) returns (EmptyResponse);
+  rpc SetVolumeBrowser(ConfigSetVolumeBrowserRequest) returns (EmptyResponse);
+}
+
+message ConfigStringResponse {
+  string value = 1;
+}
+
+message ConfigBoolResponse {
+  bool value = 1;
+}
+
+message ConfigSetThemeRequest {
+  string theme = 1;
+}
+
+message ConfigSetBoolRequest {
+  bool enabled = 1;
+}
+
+message ConfigSetStringRequest {
+  string value = 1;
+}
+
+message ConfigGVRRequest {
+  string gvr = 1;
+}
+
+message ConfigSetColumnPrefsRequest {
+  string gvr = 1;
+  // JSON-encoded *config.GVRColumnPrefs.
+  bytes prefs_json = 2;
+}
+
+message ConfigSetFontSizeRequest {
+  int32 size = 1;
+}
+
+message ConfigSetStartupBehaviorRequest {
+  string behavior = 1;
+  string cluster = 2;
+}
+
+message ConfigSetKeybindingRequest {
+  string action_id = 1;
+  string keys = 2;
+}
+
+message ConfigSetClusterPrefsRequest {
+  string context = 1;
+  // JSON-encoded *config.ClusterPrefs.
+  bytes prefs_json = 2;
+}
+
+message ConfigSetSavedFiltersRequest {
+  string gvr = 1;
+  // JSON-encoded []config.SavedFilter.
+  bytes filters_json = 2;
+}
+
+message ConfigSetClusterSavedFiltersRequest {
+  string context = 1;
+  string gvr = 2;
+  // JSON-encoded []config.SavedFilter.
+  bytes filters_json = 3;
+}
+
+message ConfigSetVolumeBrowserRequest {
+  // JSON-encoded *config.VolumeBrowserConfig.
+  bytes config_json = 1;
+}

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/Vilsol/slox"
-	"github.com/wailsapp/wails/v3/pkg/application"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,7 +56,7 @@ func NewHelmService(appSvc *AppService, resSvc *ResourceService) *HelmService {
 	}
 }
 
-func (s *HelmService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *HelmService) Startup(ctx context.Context) error {
 	s.ctx = ctx
 	if s.appService == nil {
 		return fmt.Errorf("helm service: app service not wired")
@@ -89,7 +88,7 @@ func (s *HelmService) ServiceStartup(ctx context.Context, _ application.ServiceO
 	return nil
 }
 
-func (s *HelmService) ServiceShutdown() error { return nil }
+func (s *HelmService) Shutdown() error { return nil }
 
 // Backend returns the Helm Backend. Exposed for wiring/tests.
 //

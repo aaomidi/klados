@@ -12,7 +12,6 @@ import (
 	"github.com/sasha-s/go-deadlock"
 
 	"github.com/Vilsol/slox"
-	fiberws "github.com/gofiber/websocket/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -20,6 +19,17 @@ import (
 )
 
 const logBufSize = 1024
+
+// Conn is the subset of a websocket connection the log plane needs. Both
+// gofiber/websocket and gorilla/websocket conns satisfy it, keeping this
+// package independent of the HTTP stack that upgraded the connection.
+type Conn interface {
+	ReadMessage() (messageType int, p []byte, err error)
+	WriteMessage(messageType int, data []byte) error
+}
+
+// RFC 6455 text opcode, matching the constant of both websocket libraries.
+const textMessage = 1
 
 type LogOptions struct {
 	Follow     bool   `json:"follow"`
@@ -188,13 +198,13 @@ func (s *Streamer) readLogsForContainer(ctx context.Context, stream *logStream, 
 	}
 }
 
-func (s *Streamer) HandleConn(streamID string, conn *fiberws.Conn) {
+func (s *Streamer) HandleConn(streamID string, conn Conn) {
 	s.mu.Lock()
 	stream, ok := s.streams[streamID]
 	s.mu.Unlock()
 
 	if !ok {
-		_ = conn.WriteMessage(fiberws.TextMessage, []byte(`{"type":"error","message":"stream not found"}`))
+		_ = conn.WriteMessage(textMessage, []byte(`{"type":"error","message":"stream not found"}`))
 		return
 	}
 
@@ -223,18 +233,18 @@ func (s *Streamer) HandleConn(streamID string, conn *fiberws.Conn) {
 					"lines":    lines,
 					"has_more": hasMore,
 				})
-				_ = conn.WriteMessage(fiberws.TextMessage, resp)
+				_ = conn.WriteMessage(textMessage, resp)
 			}
 		}
 	}()
 
 	for chunk := range stream.buf {
-		if err := conn.WriteMessage(fiberws.TextMessage, chunk); err != nil {
+		if err := conn.WriteMessage(textMessage, chunk); err != nil {
 			slox.Warn(s.ctx, "log ws write error", "id", streamID, "error", err)
 			return
 		}
 	}
-	_ = conn.WriteMessage(fiberws.TextMessage, []byte(`{"type":"eof"}`))
+	_ = conn.WriteMessage(textMessage, []byte(`{"type":"eof"}`))
 
 	slox.Debug(s.ctx, "log stream closed", "id", streamID)
 	s.mu.Lock()

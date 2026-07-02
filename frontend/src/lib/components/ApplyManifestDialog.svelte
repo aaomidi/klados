@@ -4,8 +4,9 @@
   import {onDestroy} from "svelte";
   import {EditorView} from "@codemirror/view";
   import {EditorState} from "@codemirror/state";
-  import {BrowseManifestFile} from "../../../bindings/github.com/Vilsol/klados/internal/services/appservice.js";
-  import {ApplyManifest} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {ApplyManifest} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {BrowseManifestFile} from "$api/github.com/Vilsol/klados/internal/services/appservice.js";
+  import {capabilitiesStore} from "$lib/stores/capabilities.svelte.js";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {shortcutActions} from "$lib/stores/shortcutActions.svelte";
 
@@ -74,7 +75,15 @@
     }
   }
 
+  let manifestFileInput = $state<HTMLInputElement>();
+
+  // Desktop: native open dialog (returns the file's content, like
+  // pre-split). Web: hidden file input.
   async function openFile() {
+    if (!capabilitiesStore.nativeDialogs) {
+      manifestFileInput?.click();
+      return;
+    }
     try {
       const content = await BrowseManifestFile();
       if (content) {
@@ -82,6 +91,24 @@
       }
     } catch (e: unknown) {
       notificationStore.push((e as {message?: string})?.message ?? "Could not open file", "error");
+    }
+  }
+
+  async function onManifestFileChosen(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+    try {
+      const content = await file.text();
+      if (content) {
+        loadContent(content);
+      }
+    } catch (err: unknown) {
+      notificationStore.push((err as {message?: string})?.message ?? "Could not open file", "error");
+    } finally {
+      input.value = "";
     }
   }
 
@@ -150,6 +177,13 @@
     >
       <div class="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
         <Dialog.Title class="text-sm font-semibold flex-1">Apply Manifest</Dialog.Title>
+        <input
+          type="file"
+          accept=".yaml,.yml,application/yaml"
+          class="hidden"
+          bind:this={manifestFileInput}
+          onchange={onManifestFileChosen}
+        >
         <button
           type="button"
           onclick={openFile}

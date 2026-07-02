@@ -12,7 +12,7 @@ import (
 
 func newDescReg(t *testing.T) *resource.Registry {
 	t.Helper()
-	reg, err := resource.NewRegistry(context.Background())
+	reg, err := resource.NewRegistry()
 	testza.AssertNoError(t, err)
 	return reg
 }

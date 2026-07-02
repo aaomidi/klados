@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {ListResources} from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {ListResources} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import type {KubernetesResource} from "$lib/types";
 
   let {obj, ctxName}: {obj: Record<string, KubernetesResource>; ctxName: string} = $props();

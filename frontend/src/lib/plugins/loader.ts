@@ -1,7 +1,7 @@
 import {Events} from "@wailsio/runtime";
 import type {Component} from "svelte";
 import {notificationStore} from "$lib/stores/notification.svelte.js";
-import {DisablePlugin} from "../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
+import {DisablePlugin} from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
 import {getLogger} from "$lib/logger";
 
 const log = getLogger("plugins");

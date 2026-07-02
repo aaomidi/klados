@@ -4,6 +4,7 @@
 "go:github.com/atombender/go-jsonschema" = "latest"
 "go:github.com/go-task/task/v3/cmd/task" = "latest"
 node = "25.8.1"
+buf = "latest"
 "aqua:tinygo-org/tinygo" = "latest"
 pnpm = "10"
 go = "1.26.0"

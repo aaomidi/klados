@@ -1,4 +1,4 @@
-import {Stop as StopVolumeBrowser} from "../../../bindings/github.com/Vilsol/klados/internal/services/volumebrowserservice.js";
+import {Stop as StopVolumeBrowser} from "$api/github.com/Vilsol/klados/internal/services/volumebrowserservice.js";
 
 export type PanelKind = "logs" | "terminal" | "terminal-pending" | "aggregate-logs" | "yaml";
 

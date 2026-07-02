@@ -1,7 +1,7 @@
 <script lang="ts">
   import {onMount} from "svelte";
-  import {GetConfig, DeleteColumnPrefs} from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
-  import type {GVRColumnPrefs} from "../../../bindings/github.com/Vilsol/klados/internal/config/models.js";
+  import {GetConfig, DeleteColumnPrefs} from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
+  import type {GVRColumnPrefs} from "$api/github.com/Vilsol/klados/internal/config/models.js";
 
   let columnPrefs = $state<Record<string, GVRColumnPrefs>>({});
 

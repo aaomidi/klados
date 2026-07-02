@@ -1,5 +1,5 @@
 import {Events} from "@wailsio/runtime";
-import {ListResourcesWithVersion, StartWatch, StopWatch} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+import {ListResourcesWithVersion, StartWatch, StopWatch} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
 import {getLogger} from "$lib/logger";
 import type {KubernetesResource} from "$lib/types";
 import {resourceCache} from "./resourceCache.svelte";
@@ -31,6 +31,8 @@ export class ResourceStore {
   private unsubStatus: (() => void) | null = null;
   private lastStatus = "";
   private generation = 0;
+  private pendingEvents: WatchEvent[] = [];
+  private flushScheduled = false;
 
   async start(contextName: string, gvr: string, namespace: string) {
     this.stop();
@@ -139,6 +141,7 @@ export class ResourceStore {
 
   stop() {
     this.generation++;
+    this.pendingEvents = [];
     if (this.unsub) {
       this.unsub();
       this.unsub = null;
@@ -160,28 +163,55 @@ export class ResourceStore {
     this.error = null;
   }
 
+  // Events arrive one per watch notification (the server already coalesces
+  // bursts into transport frames). Buffer them and apply once per microtask
+  // so a burst of N events costs one keyed-map rebuild and ONE reactive pass
+  // instead of N full array reallocations.
   private handleEvent(event: WatchEvent) {
     if (!event?.object) {
       return;
     }
-    const obj = event.object;
-    const key = resourceKey(obj);
+    this.pendingEvents.push(event);
+    if (this.flushScheduled) {
+      return;
+    }
+    this.flushScheduled = true;
+    const gen = this.generation;
+    queueMicrotask(() => {
+      this.flushScheduled = false;
+      if (gen !== this.generation) {
+        return;
+      }
+      this.applyPending();
+    });
+  }
 
-    if (event.type === "DELETED") {
-      const uid = obj.metadata?.uid;
-      if (uid) resourceCache.remove(this.contextName, this.gvr, uid);
-      this.items = this.items.filter((i) => resourceKey(i) !== key);
-    } else {
-      resourceCache.upsert(this.contextName, this.gvr, obj as Record<string, unknown>);
-      const idx = this.items.findIndex((i) => resourceKey(i) === key);
-      if (idx >= 0) {
-        const next = [...this.items];
-        next[idx] = obj;
-        this.items = next;
+  private applyPending() {
+    const events = this.pendingEvents;
+    if (events.length === 0) {
+      return;
+    }
+    this.pendingEvents = [];
+
+    const map = new Map<string, KubernetesResource>();
+    for (const obj of this.items) {
+      map.set(resourceKey(obj), obj);
+    }
+
+    for (const event of events) {
+      const obj = event.object;
+      const key = resourceKey(obj);
+      if (event.type === "DELETED") {
+        const uid = obj.metadata?.uid;
+        if (uid) resourceCache.remove(this.contextName, this.gvr, uid);
+        map.delete(key);
       } else {
-        this.items = [...this.items, obj];
+        resourceCache.upsert(this.contextName, this.gvr, obj as Record<string, unknown>);
+        map.set(key, obj);
       }
     }
+
+    this.items = Array.from(map.values());
   }
 }
 

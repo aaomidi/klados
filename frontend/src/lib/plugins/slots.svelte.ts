@@ -9,18 +9,18 @@ import {
   GetPluginHeaderWidgets,
   GetPluginStatusBarWidgets,
   InvokeCommand,
-} from "../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
+} from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
 import {getLogger} from "$lib/logger";
 
 const log = getLogger("plugins");
 // biome-ignore lint/style/noExportedImports: re-exported for consumers
-import type {PermsSummary} from "../../../bindings/github.com/Vilsol/klados/internal/plugin/models.js";
+import type {PermsSummary} from "$api/github.com/Vilsol/klados/internal/plugin/models.js";
 import {notificationStore} from "$lib/stores/notification.svelte.js";
 import {streamingStore} from "$lib/stores/streaming.svelte.js";
 import {clusterStore} from "$lib/stores/cluster.svelte.js";
 import {createPluginContext} from "$lib/plugins/context.js";
 import type {PluginManifest} from "$lib/plugins/types/manifest.js";
-import {ListResources, GetResource} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+import {ListResources, GetResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
 
 export type {PermsSummary};
 
@@ -221,8 +221,7 @@ class SlotRegistry {
 export const slotRegistry = new SlotRegistry();
 
 function getBasePluginURL(): string | null {
-  const cfg = streamingStore.config;
-  return cfg ? `http://127.0.0.1:${cfg.port}/${cfg.token}/plugins` : null;
+  return streamingStore.config ? streamingStore.pluginsBaseUrl() : null;
 }
 
 async function invokeComponentCommand(pluginName: string, component: string, perms: PermsSummary, basePluginURL: string | null) {

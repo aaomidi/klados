@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// WindowService pops bottom-panel tabs out into real OS windows. Desktop
+// only (GetCapabilities().os_windows); the web build opens a browser window
+// via window.open instead. Cross-window coordination (panel:init/ready/
+// pop-in/closed) rides the event hub in both modes.
+service WindowService {
+  rpc OpenPanelWindow(WindowOpenPanelRequest) returns (EmptyResponse);
+}
+
+message WindowOpenPanelRequest {
+  string panel_id = 1;
+  string title = 2;
+}

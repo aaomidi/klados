@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// MetricsService mirrors internal/services.MetricsService.
+service MetricsService {
+  rpc GetCapabilities(ContextRequest) returns (JsonResponse);
+  rpc GetResourceMetrics(MetricsResourceRequest) returns (JsonResponse);
+  rpc GetNamespaceMetrics(MetricsNamespaceRequest) returns (JsonResponse);
+  rpc GetListMetrics(MetricsListRequest) returns (JsonResponse);
+  rpc GetPluginMetrics(MetricsResourceRequest) returns (JsonResponse);
+  rpc SetPrometheusEndpoint(MetricsSetPrometheusEndpointRequest) returns (EmptyResponse);
+  rpc RedetectSources(ContextRequest) returns (JsonResponse);
+}
+
+message MetricsResourceRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+  string name = 4;
+  int32 range_minutes = 5;
+}
+
+message MetricsNamespaceRequest {
+  string context = 1;
+  string namespace = 2;
+  int32 range_minutes = 3;
+}
+
+message MetricsListRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+}
+
+message MetricsSetPrometheusEndpointRequest {
+  string context = 1;
+  string url = 2;
+}

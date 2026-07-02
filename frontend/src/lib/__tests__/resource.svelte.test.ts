@@ -1,12 +1,12 @@
 import {describe, it, expect, vi, beforeEach} from "vitest";
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   ListResourcesWithVersion: vi.fn().mockResolvedValue({items: [], resourceVersion: "1"}),
   StartWatch: vi.fn().mockResolvedValue(undefined),
   StopWatch: vi.fn().mockResolvedValue(undefined),
 }));
 
-import {ListResourcesWithVersion} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice";
+import {ListResourcesWithVersion} from "$api/github.com/Vilsol/klados/internal/services/resourceservice";
 import {Events} from "@wailsio/runtime";
 import {ResourceStore} from "$lib/stores/resource.svelte";
 

@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// AppService mirrors internal/services.AppService. The Browse*File methods
+// open native dialogs and are only implemented in desktop mode (check
+// GetCapabilities().native_dialogs); the web build uses browser file inputs
+// feeding ImportKubeconfigContent / ApplyManifest / InstallPlugin instead.
+service AppService {
+  rpc GetSession(EmptyRequest) returns (JsonResponse);
+  rpc SaveUIState(SaveUIStateRequest) returns (EmptyResponse);
+  rpc LogFrontend(LogFrontendRequest) returns (EmptyResponse);
+  rpc SetReadOnly(SetReadOnlyRequest) returns (EmptyResponse);
+  rpc SetLastActiveContext(ContextRequest) returns (EmptyResponse);
+  rpc GetClusterHealth(ContextRequest) returns (JsonResponse);
+  // Reports what this deployment supports so the frontend can hide
+  // desktop-only features (port-forwarding, pop-out OS windows, ...).
+  rpc GetCapabilities(EmptyRequest) returns (GetCapabilitiesResponse);
+  // Desktop only: native file dialogs. Return the selected path (kubeconfig,
+  // plugin) or the file's content (manifest); empty string on cancel.
+  rpc BrowseKubeconfigFile(EmptyRequest) returns (AppBrowseFileResponse);
+  rpc BrowseManifestFile(EmptyRequest) returns (AppBrowseFileResponse);
+  rpc BrowsePluginFile(EmptyRequest) returns (AppBrowseFileResponse);
+}
+
+message AppBrowseFileResponse {
+  string value = 1;
+}
+
+message SaveUIStateRequest {
+  // JSON array of session.TabState — kept opaque so the session schema can
+  // evolve without proto churn.
+  bytes open_tabs_json = 1;
+  int32 active_tab = 2;
+  bool sidebar_collapsed = 3;
+  int32 terminal_font_size = 4;
+  int32 sidebar_width = 5;
+}
+
+message LogFrontendRequest {
+  string level = 1;
+  string message = 2;
+  string attrs_json = 3;
+}
+
+message SetReadOnlyRequest {
+  bool enabled = 1;
+}
+
+message GetCapabilitiesResponse {
+  bool port_forwarding = 1;
+  bool os_windows = 2;
+  bool native_dialogs = 3;
+  // "desktop" | "server"
+  string mode = 4;
+}

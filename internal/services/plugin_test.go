@@ -47,7 +47,7 @@ func newTestPluginService(t *testing.T) (*PluginService, *config.Config) {
 	cfg, err := config.Load()
 	testza.AssertNoError(t, err)
 
-	appSvc := NewAppService(cfg, nil, context.Background())
+	appSvc := NewAppService(cfg, nil, context.Background(), nil, nil)
 
 	svc := &PluginService{
 		appService:  appSvc,

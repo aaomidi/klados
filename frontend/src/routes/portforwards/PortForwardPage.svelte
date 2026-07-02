@@ -16,8 +16,8 @@
     StopForward,
     SetPortForwardEnabled,
     RemoveSavedPortForward,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/portforwardservice.js";
-  import {TargetKind} from "../../../bindings/github.com/Vilsol/klados/internal/portforward/models.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/portforwardservice.js";
+  import {TargetKind} from "$api/github.com/Vilsol/klados/internal/portforward/models.js";
   import type {KubernetesResource} from "$lib/types";
 
   const PF_GVR = "_internal.v1.portforwards";

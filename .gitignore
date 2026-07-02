@@ -39,7 +39,14 @@ terminal.md
 coverage.out
 /klados
 
+# Generated ConnectRPC code — run `buf generate` (buf is in mise.toml)
+/gen/
+frontend/src/gen/
+
 # Nix build symlinks
 /result
 /result-*
 .claude/projects/
+
+# Wails binding-generator output — unused (transport is ConnectRPC; see frontend/src/api)
+frontend/bindings/

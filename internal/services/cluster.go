@@ -14,7 +14,6 @@ import (
 	"github.com/Vilsol/klados/internal/session"
 	"github.com/Vilsol/slox"
 	"github.com/adrg/xdg"
-	"github.com/wailsapp/wails/v3/pkg/application"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -43,8 +42,12 @@ func (c *ClusterService) SetHelmService(svc *HelmService) {
 	c.helmSvc = svc
 }
 
-func (c *ClusterService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
+func (c *ClusterService) Startup(ctx context.Context) error {
 	c.ctx = ctx
+	return nil
+}
+
+func (c *ClusterService) Shutdown() error {
 	return nil
 }
 

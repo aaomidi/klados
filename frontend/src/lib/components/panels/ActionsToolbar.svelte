@@ -15,8 +15,8 @@
     GetResource,
     ExpandPVC,
     RollbackToRevision,
-  } from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-  import {CordonNode, UncordonNode, StartDrain} from "../../../../bindings/github.com/Vilsol/klados/internal/services/drainservice.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {CordonNode, UncordonNode, StartDrain} from "$api/github.com/Vilsol/klados/internal/services/drainservice.js";
   import {ConfirmDialog, Tooltip} from "@klados/ui";
   import {withBusy} from "$lib/utils/async";
   import {push} from "svelte-spa-router";

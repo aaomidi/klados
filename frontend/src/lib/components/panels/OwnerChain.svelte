@@ -1,7 +1,7 @@
 <script lang="ts">
   import {ChevronRight, Link2} from "lucide-svelte";
   import {getOwnerReferences, gvrFromAPIVersion} from "$lib/kubernetes/owners";
-  import {GetResource} from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {push} from "svelte-spa-router";
 
   interface Props {

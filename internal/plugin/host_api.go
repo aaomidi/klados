@@ -7,7 +7,6 @@ import (
 	"github.com/Vilsol/slox"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
-	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/Vilsol/klados/internal/exec"
 	"github.com/Vilsol/klados/internal/logs"
@@ -19,10 +18,13 @@ import (
 type HostAPIDeps struct {
 	ResourceEngine   *resource.ResourceEngine
 	WatchManager     *watcher.WatchManager
-	LogStreamer       *logs.Streamer
+	LogStreamer      *logs.Streamer
 	ExecManager      *exec.Manager
 	TemplateRegistry *resource.TemplateRegistry
 	GetActiveContext func() string
+	// On subscribes to the app event hub; the callback receives the
+	// JSON-encoded payload. Returns an unsubscribe func.
+	On func(name string, cb func(payloadJSON []byte)) func()
 }
 
 type eventPayload struct {
@@ -327,23 +329,19 @@ func (h *hostAPI) dispatch(method string, reqBytes []byte) []byte {
 		if err := h.deps.WatchManager.StartWatch(ctxName, gvr, ns, ""); err != nil {
 			return errorJSON(err.Error())
 		}
-		if h.eventCh != nil {
-			app := application.Get()
-			if app != nil {
-				watchEvent := "watch:" + ctxName + ":" + gvr + ":" + ns
-				unsub := app.Event.On(watchEvent, func(event *application.CustomEvent) {
-					data, _ := json.Marshal(event.Data)
-					select {
-					case h.eventCh <- eventPayload{Name: watchEvent, Data: data}:
-					default:
-					}
-				})
-				h.cleanupFns = append(h.cleanupFns, unsub)
-				ctxCopy, gvrCopy, nsCopy := ctxName, gvr, ns
-				h.cleanupFns = append(h.cleanupFns, func() {
-					h.deps.WatchManager.StopWatch(ctxCopy, gvrCopy, nsCopy)
-				})
-			}
+		if h.eventCh != nil && h.deps.On != nil {
+			watchEvent := "watch:" + ctxName + ":" + gvr + ":" + ns
+			unsub := h.deps.On(watchEvent, func(payloadJSON []byte) {
+				select {
+				case h.eventCh <- eventPayload{Name: watchEvent, Data: payloadJSON}:
+				default:
+				}
+			})
+			h.cleanupFns = append(h.cleanupFns, unsub)
+			ctxCopy, gvrCopy, nsCopy := ctxName, gvr, ns
+			h.cleanupFns = append(h.cleanupFns, func() {
+				h.deps.WatchManager.StopWatch(ctxCopy, gvrCopy, nsCopy)
+			})
 		}
 		return marshalJSON(map[string]any{"ok": true})
 
@@ -406,18 +404,14 @@ func (h *hostAPI) dispatch(method string, reqBytes []byte) []byte {
 			return errorJSON("method not available: " + method)
 		}
 		eventName, _ := req["event"].(string)
-		if h.eventCh != nil {
-			app := application.Get()
-			if app != nil {
-				unsub := app.Event.On(eventName, func(event *application.CustomEvent) {
-					data, _ := json.Marshal(event.Data)
-					select {
-					case h.eventCh <- eventPayload{Name: eventName, Data: data}:
-					default:
-					}
-				})
-				h.cleanupFns = append(h.cleanupFns, unsub)
-			}
+		if h.eventCh != nil && h.deps.On != nil {
+			unsub := h.deps.On(eventName, func(payloadJSON []byte) {
+				select {
+				case h.eventCh <- eventPayload{Name: eventName, Data: payloadJSON}:
+				default:
+				}
+			})
+			h.cleanupFns = append(h.cleanupFns, unsub)
 		}
 		return marshalJSON(map[string]any{"ok": true})
 

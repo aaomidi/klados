@@ -2,16 +2,21 @@ import {describe, it, expect, vi} from "vitest";
 import {render, screen, waitFor, fireEvent} from "@testing-library/svelte";
 import {tick} from "svelte";
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   ApplyManifest: vi.fn().mockResolvedValue([
     {gvr: "core.v1.configmaps", namespace: "default", name: "my-cm", action: "created", error: ""},
     {gvr: "apps.v1.deployments", namespace: "default", name: "my-app", action: "configured", error: ""},
   ]),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/appservice.js", () => ({
+vi.mock("$lib/stores/capabilities.svelte.js", () => ({
+  capabilitiesStore: {nativeDialogs: true, osWindows: true, portForwarding: true, mode: "desktop", loaded: true},
+}));
+
+vi.mock("$api/github.com/Vilsol/klados/internal/services/appservice.js", () => ({
   BrowseManifestFile: vi.fn().mockResolvedValue("apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: file-cm\n"),
   LogFrontend: vi.fn(),
+  GetCapabilities: vi.fn().mockResolvedValue({nativeDialogs: true, osWindows: true, portForwarding: true, mode: "desktop"}),
 }));
 
 vi.mock("$lib/stores/notification.svelte", () => ({

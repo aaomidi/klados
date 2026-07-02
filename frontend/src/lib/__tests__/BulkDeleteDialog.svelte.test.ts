@@ -7,7 +7,7 @@ const mockDeselectKeys = vi.hoisted(() => vi.fn());
 const mockNotificationPush = vi.hoisted(() => vi.fn());
 const mockItems = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   DeleteResource: mockDeleteResource,
   ForceDeleteResource: mockForceDeleteResource,
 }));

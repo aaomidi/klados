@@ -5,12 +5,12 @@ import {
   Spawn,
   Replace,
   AttachTab,
-} from "../../../bindings/github.com/Vilsol/klados/internal/services/volumebrowserservice.js";
+} from "$api/github.com/Vilsol/klados/internal/services/volumebrowserservice.js";
 import type {
   SpawnOverridesDTO,
   SpawnRequestDTO,
   SpawnResult,
-} from "../../../bindings/github.com/Vilsol/klados/internal/services/models.js";
+} from "$api/github.com/Vilsol/klados/internal/services/models.js";
 import {getLogger} from "$lib/logger";
 
 const log = getLogger("volume-browser");

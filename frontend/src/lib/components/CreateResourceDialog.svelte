@@ -14,8 +14,8 @@
     GetAllTemplateGVRs,
     GetTemplates,
     CreateResource,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-  import {GetSchema} from "../../../bindings/github.com/Vilsol/klados/internal/services/schemaservice.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetSchema} from "$api/github.com/Vilsol/klados/internal/services/schemaservice.js";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {shortcutActions} from "$lib/stores/shortcutActions.svelte";
   import {getLogger} from "$lib/logger";

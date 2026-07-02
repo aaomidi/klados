@@ -1,7 +1,7 @@
 <script lang="ts">
   import {onDestroy} from "svelte";
-  import {OpenExecSession, CloseExecSession} from "../../../../bindings/github.com/Vilsol/klados/internal/services/execservice.js";
-  import {GetResource} from "../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {OpenExecSession, CloseExecSession} from "$api/github.com/Vilsol/klados/internal/services/execservice.js";
+  import {GetResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {streamingStore} from "$lib/stores/streaming.svelte";
   import {sessionStore} from "$lib/stores/session.svelte";
   import {bottomPanelStore, type PanelKind} from "$lib/stores/bottom-panel.svelte";

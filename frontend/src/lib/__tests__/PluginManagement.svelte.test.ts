@@ -9,7 +9,7 @@ const {mockInstallPlugin, mockListPlugins, mockSaveRegistryCredentials, mockAddI
   mockBrowsePluginFile: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/pluginservice.js", () => ({
   InstallPlugin: mockInstallPlugin,
   ListPlugins: mockListPlugins,
   SaveRegistryCredentials: mockSaveRegistryCredentials,
@@ -24,8 +24,13 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/pluginserv
   GetPluginCommands: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/appservice.js", () => ({
+vi.mock("$lib/stores/capabilities.svelte.js", () => ({
+  capabilitiesStore: {nativeDialogs: true, osWindows: true, portForwarding: true, mode: "desktop", loaded: true},
+}));
+
+vi.mock("$api/github.com/Vilsol/klados/internal/services/appservice.js", () => ({
   BrowsePluginFile: mockBrowsePluginFile,
+  GetCapabilities: vi.fn().mockResolvedValue({nativeDialogs: true, osWindows: true, portForwarding: true, mode: "desktop"}),
 }));
 
 import PluginManagement from "../../routes/PluginManagement.svelte";

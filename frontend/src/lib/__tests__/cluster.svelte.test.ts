@@ -2,7 +2,7 @@ import {describe, it, expect, vi, beforeEach} from "vitest";
 import {clusterStore, ConnectionStatus} from "$lib/stores/cluster.svelte";
 
 // Mock the binding module
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/clusterservice.js", () => ({
   ListContexts: vi.fn(),
   Connect: vi.fn(),
   Disconnect: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/clusterser
   GetActiveNamespace: vi.fn().mockResolvedValue(""),
   GetStatus: vi.fn(),
 }));
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/appservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/appservice.js", () => ({
   SetReadOnly: vi.fn().mockResolvedValue(undefined),
   SetLastActiveContext: vi.fn().mockResolvedValue(undefined),
   LogFrontend: vi.fn().mockResolvedValue(undefined),
@@ -27,10 +27,10 @@ vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/appservice
   BrowsePluginFile: vi.fn(),
   BrowseManifestFile: vi.fn(),
 }));
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/configservice.js", () => ({
   GetConfig: vi.fn().mockResolvedValue({readOnly: false}),
 }));
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   StartWatch: vi.fn().mockResolvedValue(undefined),
   StopWatch: vi.fn().mockResolvedValue(undefined),
 }));
@@ -42,9 +42,9 @@ import {
   Activate,
   Deactivate,
   ListNamespaces,
-} from "../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice";
-import {SetLastActiveContext} from "../../../bindings/github.com/Vilsol/klados/internal/services/appservice";
-import {StartWatch, StopWatch} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice";
+} from "$api/github.com/Vilsol/klados/internal/services/clusterservice";
+import {SetLastActiveContext} from "$api/github.com/Vilsol/klados/internal/services/appservice";
+import {StartWatch, StopWatch} from "$api/github.com/Vilsol/klados/internal/services/resourceservice";
 import {Events} from "@wailsio/runtime";
 
 const mockedListContexts = vi.mocked(ListContexts);

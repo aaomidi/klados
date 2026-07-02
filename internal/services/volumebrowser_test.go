@@ -386,7 +386,7 @@ func TestVolumeBrowserService_ServiceShutdown_CallsStopAllWithinTimeout(t *testi
 	svc := newVolumeBrowserServiceForTest(mgr, &fakeCfgResolver{})
 
 	done := make(chan error, 1)
-	go func() { done <- svc.ServiceShutdown() }()
+	go func() { done <- svc.Shutdown() }()
 
 	select {
 	case err := <-done:

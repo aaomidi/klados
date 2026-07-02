@@ -1,7 +1,7 @@
-import {GetDescriptors} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-import {GetPluginDescriptors} from "../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
+import {GetDescriptors} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+import {GetPluginDescriptors} from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
 import {getLogger} from "$lib/logger";
-import type {APIResource} from "../../../bindings/github.com/Vilsol/klados/internal/cluster/index.js";
+import type {APIResource} from "$api/github.com/Vilsol/klados/internal/cluster/index.js";
 import {generateDescriptor} from "./generator";
 
 const log = getLogger("registry");

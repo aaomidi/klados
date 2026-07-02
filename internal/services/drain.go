@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/sasha-s/go-deadlock"
-	"github.com/wailsapp/wails/v3/pkg/application"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubectl/pkg/drain"
 )
@@ -32,12 +31,12 @@ func NewDrainService(appSvc *AppService) *DrainService {
 	}
 }
 
-func (s *DrainService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *DrainService) Startup(ctx context.Context) error {
 	s.ctx = ctx
 	return nil
 }
 
-func (s *DrainService) ServiceShutdown() error {
+func (s *DrainService) Shutdown() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, sess := range s.sessions {
@@ -51,10 +50,7 @@ func sessionKey(contextName, nodeName string) string {
 }
 
 func (s *DrainService) emit(name string, data any) {
-	app := application.Get()
-	if app != nil {
-		app.Event.Emit(name, data)
-	}
+	s.appService.Emit(name, data)
 }
 
 func (s *DrainService) StartDrain(contextName, nodeName string) error {

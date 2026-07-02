@@ -5,7 +5,7 @@
   import { WebglAddon } from '@xterm/addon-webgl'
   import { ClipboardAddon } from '@xterm/addon-clipboard'
 
-  interface StreamingConfig { port: number; token: string }
+  interface StreamingConfig { port: number; token: string; origin?: string }
 
   let { sessionID, streamingConfig, ondisconnect, useWebGL, onSetShortcutMode, fontSize = 13, onclear }: {
     sessionID: string
@@ -36,7 +36,8 @@
   })
 
   function buildURL() {
-    return `ws://127.0.0.1:${streamingConfig.port}/${streamingConfig.token}/ws/exec/${sessionID}`
+    const origin = streamingConfig.origin ?? window.location.origin
+    return `${origin.replace(/^http/, 'ws')}/ws/exec/${sessionID}`
   }
 
   onMount(() => {

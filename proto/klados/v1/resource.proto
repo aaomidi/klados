@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package klados.v1;
+
+// ResourceService mirrors internal/services.ResourceService.
+//
+// Convention (applies to every klados.v1 service): request parameters are
+// typed proto fields; structured results ride as `bytes *_json` carrying the
+// exact JSON the Wails binding layer produced. Unstructured Kubernetes
+// objects are schemaless by nature, and raw JSON keeps the hot list/watch
+// path free of protobuf.Struct encoding cost while guaranteeing the frontend
+// sees byte-identical shapes.
+service ResourceService {
+  rpc ListResourcesWithVersion(ListResourcesWithVersionRequest) returns (ListResourcesWithVersionResponse);
+  rpc GetResource(GetResourceRequest) returns (JsonResponse);
+  rpc DeleteResource(ResourceRefRequest) returns (EmptyResponse);
+  rpc ForceDeleteResource(ResourceRefRequest) returns (EmptyResponse);
+  rpc CreateResource(MutateResourceRequest) returns (JsonResponse);
+  rpc UpdateResource(MutateResourceRequest) returns (JsonResponse);
+  rpc StartWatch(StartWatchRequest) returns (EmptyResponse);
+  rpc StopWatch(StopWatchRequest) returns (EmptyResponse);
+  rpc ListAPIResources(ContextRequest) returns (JsonResponse);
+  rpc GetDescriptors(EmptyRequest) returns (JsonResponse);
+  rpc GetEvents(GetEventsRequest) returns (JsonResponse);
+  rpc ScaleResource(ScaleResourceRequest) returns (EmptyResponse);
+  rpc ExpandPVC(ExpandPVCRequest) returns (EmptyResponse);
+  rpc RestartResource(ResourceRefRequest) returns (EmptyResponse);
+  rpc PauseRollout(NamespacedNameRequest) returns (EmptyResponse);
+  rpc ResumeRollout(NamespacedNameRequest) returns (EmptyResponse);
+  rpc GetRolloutHistory(ResourceRefRequest) returns (JsonResponse);
+  rpc RollbackToRevision(RollbackToRevisionRequest) returns (EmptyResponse);
+  rpc DeleteJobCascade(NamespacedNameRequest) returns (EmptyResponse);
+  rpc DeleteJobOrphan(NamespacedNameRequest) returns (EmptyResponse);
+  rpc TriggerCronJob(NamespacedNameRequest) returns (EmptyResponse);
+  rpc SuspendCronJob(NamespacedNameRequest) returns (EmptyResponse);
+  rpc ResumeCronJob(NamespacedNameRequest) returns (EmptyResponse);
+  rpc GetTemplates(GetTemplatesRequest) returns (JsonResponse);
+  rpc GetAllTemplateGVRs(ContextRequest) returns (StringListResponse);
+  rpc ApplyManifest(ApplyManifestRequest) returns (JsonResponse);
+}
+
+message EmptyRequest {}
+
+message EmptyResponse {}
+
+// JsonResponse carries a JSON document whose shape matches the corresponding
+// Wails binding return value (object or array).
+message JsonResponse {
+  bytes result_json = 1;
+}
+
+message StringListResponse {
+  repeated string values = 1;
+}
+
+message ContextRequest {
+  string context = 1;
+}
+
+message ResourceRefRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+  string name = 4;
+}
+
+message NamespacedNameRequest {
+  string context = 1;
+  string namespace = 2;
+  string name = 3;
+}
+
+message ListResourcesWithVersionRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+}
+
+message ListResourcesWithVersionResponse {
+  // JSON array of enriched unstructured objects.
+  bytes items_json = 1;
+  string resource_version = 2;
+}
+
+message GetResourceRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+  string name = 4;
+}
+
+message MutateResourceRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+  // JSON-encoded unstructured object.
+  bytes object_json = 4;
+}
+
+message StartWatchRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+  string resource_version = 4;
+}
+
+message StopWatchRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+}
+
+message GetEventsRequest {
+  string context = 1;
+  string namespace = 2;
+  string uid = 3;
+}
+
+message ScaleResourceRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+  string name = 4;
+  int32 replicas = 5;
+}
+
+message ExpandPVCRequest {
+  string context = 1;
+  string namespace = 2;
+  string name = 3;
+  string new_size = 4;
+}
+
+message RollbackToRevisionRequest {
+  string context = 1;
+  string gvr = 2;
+  string namespace = 3;
+  string name = 4;
+  int64 revision = 5;
+}
+
+message GetTemplatesRequest {
+  string context = 1;
+  string gvr = 2;
+}
+
+message ApplyManifestRequest {
+  string context = 1;
+  string yaml_content = 2;
+}

@@ -1,5 +1,5 @@
 import {Events} from "@wailsio/runtime";
-import {ListForwards} from "../../../bindings/github.com/Vilsol/klados/internal/services/portforwardservice.js";
+import {ListForwards} from "$api/github.com/Vilsol/klados/internal/services/portforwardservice.js";
 
 export interface ForwardSpec {
   id: string;

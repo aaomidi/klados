@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Vilsol/slox"
-	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/Vilsol/klados/internal/config"
 	"github.com/Vilsol/klados/internal/volumebrowser"
@@ -50,19 +49,15 @@ func newVolumeBrowserServiceForTest(mgr volumeBrowserManager, cfg configResolver
 	return &VolumeBrowserService{manager: mgr, cfg: cfg, ctx: context.Background()}
 }
 
-func (s *VolumeBrowserService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+func (s *VolumeBrowserService) Startup(ctx context.Context) error {
 	s.ctx = ctx
 	s.manager = s.appService.VolumeBrowserManager()
 	s.cfg = s.appService.Config()
-	s.emitEvent = func(name string, data any) {
-		if app := application.Get(); app != nil {
-			app.Event.Emit(name, data)
-		}
-	}
+	s.emitEvent = s.appService.Emit
 	return nil
 }
 
-func (s *VolumeBrowserService) ServiceShutdown() error {
+func (s *VolumeBrowserService) Shutdown() error {
 	if s.manager == nil {
 		return nil
 	}

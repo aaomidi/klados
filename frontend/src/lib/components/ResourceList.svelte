@@ -4,7 +4,7 @@
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {evalExpr, defaultAlign, type ColumnDef, type RenderType} from "$lib/registry/index";
   import {getControllerRef, type ControllerRef} from "$lib/utils/relationships";
-  import {DeleteResource} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {DeleteResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {formatAge} from "$lib/utils/age";
   import {onMount, untrack} from "svelte";
   import {slotRegistry} from "$lib/plugins/slots.svelte.js";
@@ -157,9 +157,7 @@
 
   const pluginColumns = $derived(slotRegistry.getListColumns(gvr));
   const pluginMenuItems = $derived(slotRegistry.getContextMenuItems(gvr));
-  const basePluginURL = $derived(
-    streamingStore.config ? `http://127.0.0.1:${streamingStore.config.port}/${streamingStore.config.token}/plugins` : null,
-  );
+  const basePluginURL = $derived(streamingStore.config ? streamingStore.pluginsBaseUrl() : null);
 
   $effect(() => {
     if (!ctxMenu) {

@@ -1,0 +1,113 @@
+# Klados self-hosted deployment.
+#
+# Auth model: none at the app layer — expose it ONLY on a private network
+# (e.g. the Tailscale operator, below). Anyone who can reach the Service has
+# whatever cluster access the ServiceAccount / imported kubeconfigs grant,
+# including pod exec.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: klados
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: klados
+  namespace: klados
+---
+# Klados is a cluster IDE: it lists/edits arbitrary GVRs, streams logs,
+# execs into pods, drains nodes, and manages Helm release secrets. That is
+# effectively cluster-admin. Scope this down (or use a read-only role plus
+# the app's read-only mode) if you want a safer default.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: klados
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: klados
+    namespace: klados
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: klados-data
+  namespace: klados
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: klados
+  namespace: klados
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # single writer for /data
+  selector:
+    matchLabels:
+      app: klados
+  template:
+    metadata:
+      labels:
+        app: klados
+    spec:
+      serviceAccountName: klados
+      containers:
+        - name: klados
+          image: klados:latest # build with: docker build -t klados .
+          args: ["serve", "--addr", ":8080"]
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: klados-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: klados
+  namespace: klados
+  # With the Tailscale operator installed, uncomment to expose on the
+  # tailnet instead of a LoadBalancer:
+  # annotations:
+  #   tailscale.com/expose: "true"
+  #   tailscale.com/hostname: "klados"
+spec:
+  selector:
+    app: klados
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP

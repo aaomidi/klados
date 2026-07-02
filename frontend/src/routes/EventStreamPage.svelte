@@ -6,7 +6,7 @@
   import {registryLoaded} from "$lib/registry/loaded.svelte";
   import {columnStore} from "$lib/stores/columns.svelte";
   import {notificationStore} from "$lib/stores/notification.svelte";
-  import {GetResource} from "../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import DataTable, {type DataTableColumn} from "$lib/components/DataTable.svelte";
   import ColumnMenu from "$lib/components/ColumnMenu.svelte";
   import ResourceDetail from "$lib/components/ResourceDetail.svelte";

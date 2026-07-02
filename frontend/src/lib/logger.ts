@@ -1,5 +1,5 @@
 import {Logger} from "tslog";
-import {LogFrontend} from "../../bindings/github.com/Vilsol/klados/internal/services/appservice.js";
+import {LogFrontend} from "$api/github.com/Vilsol/klados/internal/services/appservice.js";
 
 const positionalKeyPattern = /^\d+$/;
 

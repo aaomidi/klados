@@ -16,11 +16,11 @@ function send(msg: string) {
   }
   while (queue.length > 0) {
     const m = queue.shift() as string;
-    fetch(`http://127.0.0.1:${cfg.port}/${cfg.token}/log`, {method: "POST", body: m}).catch(() => {
+    fetch(streamingStore.logSinkUrl(), {method: "POST", body: m}).catch(() => {
       /* empty */
     });
   }
-  fetch(`http://127.0.0.1:${cfg.port}/${cfg.token}/log`, {method: "POST", body: msg}).catch(() => {
+  fetch(streamingStore.logSinkUrl(), {method: "POST", body: msg}).catch(() => {
     /* empty */
   });
 }

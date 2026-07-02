@@ -1,7 +1,7 @@
 import {describe, it, expect, beforeEach, afterEach, vi} from "vitest";
 import {render, screen, fireEvent, cleanup, waitFor} from "@testing-library/svelte";
 import {tick} from "svelte";
-import {APIResource} from "../../../bindings/github.com/Vilsol/klados/internal/cluster/index.js";
+import {APIResource} from "$api/github.com/Vilsol/klados/internal/cluster/index.js";
 
 const mockList = vi.hoisted(() => vi.fn());
 const mockListDiscoveryGVRs = vi.hoisted(() => vi.fn());
@@ -42,7 +42,7 @@ vi.mock("$lib/utils/focusedPVC", () => ({
   focusedPVC: vi.fn().mockReturnValue(null),
 }));
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/clusterservice.js", () => ({
   ListContexts: vi.fn().mockResolvedValue([]),
   Connect: vi.fn().mockResolvedValue(undefined),
   Disconnect: vi.fn().mockResolvedValue(undefined),

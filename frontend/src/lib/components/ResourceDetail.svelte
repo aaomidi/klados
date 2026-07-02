@@ -11,8 +11,8 @@
     ListResources,
     GetResource,
     UpdateResource,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-  import {GetSchema} from "../../../bindings/github.com/Vilsol/klados/internal/services/schemaservice.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+  import {GetSchema} from "$api/github.com/Vilsol/klados/internal/services/schemaservice.js";
   import {notificationStore} from "$lib/stores/notification.svelte.js";
   import {shortcutStore} from "$lib/stores/shortcuts.svelte.js";
   import {unwrapError} from "$lib/utils/async.js";
@@ -189,9 +189,7 @@
     }
   });
 
-  const basePluginURL = $derived(
-    streamingStore.config ? `http://127.0.0.1:${streamingStore.config.port}/${streamingStore.config.token}/plugins` : null,
-  );
+  const basePluginURL = $derived(streamingStore.config ? streamingStore.pluginsBaseUrl() : null);
 
   function makePluginCtx(tab: import("$lib/plugins/slots.svelte.js").RegisteredDetailTab) {
     const ns = clusterStore.getSelectedNamespaces(ctxName)[0] ?? namespace;

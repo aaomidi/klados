@@ -2,14 +2,14 @@ import {Events} from "@wailsio/runtime";
 import type {PluginManifest} from "./types/manifest.js";
 import type {PluginContext} from "./types/context.js";
 import {assertGVRPermission} from "./permissions.js";
-import {StartLogStream, StopLogStream} from "../../../bindings/github.com/Vilsol/klados/internal/services/logservice.js";
-import {OpenExecSession, CloseExecSession} from "../../../bindings/github.com/Vilsol/klados/internal/services/execservice.js";
+import {StartLogStream, StopLogStream} from "$api/github.com/Vilsol/klados/internal/services/logservice.js";
+import {OpenExecSession, CloseExecSession} from "$api/github.com/Vilsol/klados/internal/services/execservice.js";
 import {
   GetPluginStorageKey,
   SetPluginStorageKey,
   DeletePluginStorageKey,
-} from "../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
-import {StartWatch, StopWatch} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
+} from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
+import {StartWatch, StopWatch} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
 
 export interface HostServices {
   clusterName: string;

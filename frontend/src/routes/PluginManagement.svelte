@@ -9,10 +9,12 @@
     ReloadPluginManual,
     UninstallPlugin,
     InstallPlugin,
+    InstallPluginArchive,
     SaveRegistryCredentials,
     AddInsecureRegistry,
-  } from "../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js";
-  import {BrowsePluginFile} from "../../bindings/github.com/Vilsol/klados/internal/services/appservice.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/pluginservice.js";
+  import {BrowsePluginFile} from "$api/github.com/Vilsol/klados/internal/services/appservice.js";
+  import {capabilitiesStore} from "$lib/stores/capabilities.svelte.js";
   import {ConfirmDialog} from "@klados/ui";
   import {notificationStore} from "$lib/stores/notification.svelte.js";
 
@@ -177,7 +179,15 @@
     }
   }
 
+  let pluginFileInput = $state<HTMLInputElement>();
+
+  // Desktop: native open dialog → install by path (like pre-split).
+  // Web: hidden file input → upload the archive bytes.
   async function installPlugin() {
+    if (!capabilitiesStore.nativeDialogs) {
+      pluginFileInput?.click();
+      return;
+    }
     installing = true;
     try {
       const path = await BrowsePluginFile();
@@ -192,6 +202,25 @@
       installing = false;
     }
   }
+
+  async function onPluginFileChosen(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+    installing = true;
+    try {
+      const data = new Uint8Array(await file.arrayBuffer());
+      await InstallPluginArchive(data, file.name);
+      notificationStore.success("Plugin installed", file.name);
+    } catch (err) {
+      notificationStore.error("Install failed", err instanceof Error ? err.message : String(err));
+    } finally {
+      installing = false;
+      input.value = "";
+    }
+  }
 </script>
 
 <div class="flex flex-col h-full overflow-auto">
@@ -201,6 +230,13 @@
       <span class="text-xs bg-surface px-2 py-0.5 rounded-full border border-border text-muted"> {plugins.length} </span>
     {/if}
     <div class="ml-auto">
+      <input
+        type="file"
+        accept=".gz,.tar,.oci.tar.gz,.oci.tar,application/gzip"
+        class="hidden"
+        bind:this={pluginFileInput}
+        onchange={onPluginFileChosen}
+      >
       <button
         type="button"
         onclick={installPlugin}

@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// DrainService mirrors internal/services.DrainService. StartDrain returns
+// immediately; progress streams over drain:{ctx}:{node} events.
+service DrainService {
+  rpc StartDrain(DrainNodeRequest) returns (EmptyResponse);
+  rpc CancelDrain(DrainNodeRequest) returns (EmptyResponse);
+  rpc IsActive(DrainNodeRequest) returns (DrainIsActiveResponse);
+  rpc ListActive(ContextRequest) returns (StringListResponse);
+  rpc CordonNode(DrainNodeRequest) returns (EmptyResponse);
+  rpc UncordonNode(DrainNodeRequest) returns (EmptyResponse);
+}
+
+message DrainNodeRequest {
+  string context = 1;
+  string node_name = 2;
+}
+
+message DrainIsActiveResponse {
+  bool active = 1;
+}

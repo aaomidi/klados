@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// LogService mirrors internal/services.LogService. The returned stream id is
+// redeemed against the WebSocket endpoint /ws/logs/{stream_id}; the byte
+// stream itself never rides over Connect.
+service LogService {
+  rpc StartLogStream(StartLogStreamRequest) returns (StartLogStreamResponse);
+  rpc StopLogStream(StopLogStreamRequest) returns (EmptyResponse);
+}
+
+message StartLogStreamRequest {
+  string context = 1;
+  string namespace = 2;
+  string pod_name = 3;
+  LogOptions options = 4;
+}
+
+message LogOptions {
+  bool follow = 1;
+  optional int64 tail_lines = 2;
+  bool timestamps = 3;
+  bool previous = 4;
+  string container = 5;
+}
+
+message StartLogStreamResponse {
+  string stream_id = 1;
+}
+
+message StopLogStreamRequest {
+  string stream_id = 1;
+}

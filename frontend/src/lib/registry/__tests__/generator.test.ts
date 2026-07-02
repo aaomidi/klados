@@ -4,7 +4,7 @@ import {
   crdTypeToRenderType,
   generateDescriptor,
 } from "../generator";
-import type { APIResource } from "../../../../bindings/github.com/Vilsol/klados/internal/cluster/index.js";
+import type { APIResource } from "$api/github.com/Vilsol/klados/internal/cluster/index.js";
 
 describe("jsonPathToCEL", () => {
   it("strips leading dot", () => {

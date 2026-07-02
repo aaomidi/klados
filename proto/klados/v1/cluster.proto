@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package klados.v1;
+
+import "klados/v1/resource.proto";
+
+// ClusterService mirrors internal/services.ClusterService.
+service ClusterService {
+  rpc ListContexts(EmptyRequest) returns (JsonResponse);
+  rpc Connect(ContextRequest) returns (EmptyResponse);
+  rpc Disconnect(ContextRequest) returns (EmptyResponse);
+  rpc Activate(ContextRequest) returns (EmptyResponse);
+  rpc Deactivate(ContextRequest) returns (EmptyResponse);
+  rpc ListNamespaces(ContextRequest) returns (StringListResponse);
+  rpc SwitchNamespace(SwitchNamespaceRequest) returns (EmptyResponse);
+  rpc GetActiveNamespace(ContextRequest) returns (GetActiveNamespaceResponse);
+  rpc GetStatus(ContextRequest) returns (GetStatusResponse);
+  rpc CreateNamespace(NamespaceNameRequest) returns (EmptyResponse);
+  rpc DeleteNamespace(NamespaceNameRequest) returns (EmptyResponse);
+  rpc AddKubeconfigPath(KubeconfigPathRequest) returns (JsonResponse);
+  rpc ImportKubeconfigContent(ImportKubeconfigContentRequest) returns (JsonResponse);
+  rpc RemoveKubeconfigPath(KubeconfigPathRequest) returns (JsonResponse);
+  rpc GetClusterInfo(ContextRequest) returns (JsonResponse);
+}
+
+message SwitchNamespaceRequest {
+  string context = 1;
+  string namespace = 2;
+}
+
+message GetActiveNamespaceResponse {
+  string namespace = 1;
+}
+
+// Matches cluster.ConnectionStatus's integer wire value as serialized today.
+message GetStatusResponse {
+  int32 status = 1;
+}
+
+message NamespaceNameRequest {
+  string context = 1;
+  string name = 2;
+}
+
+message KubeconfigPathRequest {
+  string path = 1;
+}
+
+message ImportKubeconfigContentRequest {
+  string content = 1;
+}

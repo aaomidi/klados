@@ -2,7 +2,6 @@ import {defineConfig} from "vite";
 import type {Plugin, ResolvedConfig, ViteDevServer} from "vite";
 import {svelte} from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
-import wails from "@wailsio/runtime/plugins/vite";
 import path from "node:path";
 import type {IncomingMessage, ServerResponse} from "node:http";
 import process from "node:process";
@@ -60,10 +59,16 @@ const svelteSharedRuntime = (): Plugin => {
 };
 
 export default defineConfig({
-  plugins: [svelte(), tailwindcss(), wails("./bindings"), svelteSharedRuntime()],
+  plugins: [svelte(), tailwindcss(), svelteSharedRuntime()],
   resolve: {
     alias: {
       $lib: path.resolve("./src/lib"),
+      // Connect-backed service facades + DTO models. Lives OUTSIDE
+      // frontend/bindings so `wails3 generate bindings` can never clobber it.
+      $api: path.resolve("./src/api"),
+      // The Wails desktop bridge is gone; Events/Browser/System/Create are
+      // served by the Connect-backed shim for app code, models, and tests.
+      "@wailsio/runtime": path.resolve("./src/lib/transport/wails-runtime.ts"),
     },
   },
   build: {

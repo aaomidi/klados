@@ -7,8 +7,8 @@
     SetSavedFilters,
     GetSavedFilters,
     GetClusterPrefs,
-  } from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
-  import {SavedFilter as BindingSavedFilter} from "../../../bindings/github.com/Vilsol/klados/internal/config/models.js";
+  } from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
+  import {SavedFilter as BindingSavedFilter} from "$api/github.com/Vilsol/klados/internal/config/models.js";
 
   function toBindingFilters(filters: SavedFilter[]): BindingSavedFilter[] {
     return filters.map((f) => new BindingSavedFilter(f));

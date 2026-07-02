@@ -4,8 +4,8 @@ import {
   DeleteColumnPrefs,
   SetColumnPrefs,
   SetCompactRows,
-} from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
-import {GVRColumnPrefs, ColumnSettings, SortPrefs} from "../../../bindings/github.com/Vilsol/klados/internal/config/models.js";
+} from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
+import {GVRColumnPrefs, ColumnSettings, SortPrefs} from "$api/github.com/Vilsol/klados/internal/config/models.js";
 import {descriptorRegistry} from "../registry/index.js";
 import type {ColumnDef} from "../registry/index.js";
 

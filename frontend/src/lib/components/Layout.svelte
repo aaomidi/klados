@@ -17,9 +17,7 @@
 
   const activeCtx = $derived(clusterStore.activeContext ?? "");
 
-  const basePluginURL = $derived(
-    streamingStore.config ? `http://127.0.0.1:${streamingStore.config.port}/${streamingStore.config.token}/plugins` : null,
-  );
+  const basePluginURL = $derived(streamingStore.config ? streamingStore.pluginsBaseUrl() : null);
 </script>
 
 <a

@@ -6,7 +6,6 @@ import (
 	"regexp"
 
 	"github.com/Vilsol/klados/internal/config"
-	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 var hexColorRe = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -14,10 +13,16 @@ var hexColorRe = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 type ConfigService struct {
 	ctx    context.Context
 	config *config.Config
+	appSvc *AppService
 }
 
 func NewConfigService(ctx context.Context, cfg *config.Config) *ConfigService {
 	return &ConfigService{ctx: ctx, config: cfg}
+}
+
+// SetAppService wires the event emitter used for config:updated broadcasts.
+func (c *ConfigService) SetAppService(appSvc *AppService) {
+	c.appSvc = appSvc
 }
 
 func (c *ConfigService) GetTheme() string {
@@ -98,13 +103,14 @@ func (c *ConfigService) GetConfig() *config.Config {
 	return c.config
 }
 
-func (c *ConfigService) ServiceStartup(_ context.Context, _ application.ServiceOptions) error {
-	app := application.Get()
-	if app != nil {
-		c.config.SetEmit(func(name string, data any) {
-			app.Event.Emit(name, data)
-		})
+func (c *ConfigService) Startup(_ context.Context) error {
+	if c.appSvc != nil {
+		c.config.SetEmit(c.appSvc.Emit)
 	}
+	return nil
+}
+
+func (c *ConfigService) Shutdown() error {
 	return nil
 }
 

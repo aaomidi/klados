@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { APIResource } from "../../../../bindings/github.com/Vilsol/klados/internal/cluster/index.js";
+import type { APIResource } from "$api/github.com/Vilsol/klados/internal/cluster/index.js";
 
-vi.mock("../../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   GetDescriptors: vi.fn().mockResolvedValue([]),
 }));
-vi.mock("../../../../bindings/github.com/Vilsol/klados/internal/services/pluginservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/pluginservice.js", () => ({
   GetPluginDescriptors: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("../loaded.svelte", () => ({

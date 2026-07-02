@@ -10,19 +10,19 @@ import {
   DeleteNamespace,
   SwitchNamespace,
   GetActiveNamespace,
-} from "../../../bindings/github.com/Vilsol/klados/internal/services/clusterservice.js";
-import {SetReadOnly, SetLastActiveContext} from "../../../bindings/github.com/Vilsol/klados/internal/services/appservice.js";
-import {StartWatch, StopWatch} from "../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js";
-import {GetConfig} from "../../../bindings/github.com/Vilsol/klados/internal/services/configservice.js";
+} from "$api/github.com/Vilsol/klados/internal/services/clusterservice.js";
+import {SetReadOnly, SetLastActiveContext} from "$api/github.com/Vilsol/klados/internal/services/appservice.js";
+import {StartWatch, StopWatch} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
+import {GetConfig} from "$api/github.com/Vilsol/klados/internal/services/configservice.js";
 import {getLogger} from "$lib/logger";
 import {preferencesStore} from "./preferences.svelte";
 
 const log = getLogger("cluster");
 // biome-ignore lint/style/noExportedImports: re-exported for consumers
-import {type KubeContext, ConnectionStatus} from "../../../bindings/github.com/Vilsol/klados/internal/cluster/models.js";
+import {type KubeContext, ConnectionStatus} from "$api/github.com/Vilsol/klados/internal/cluster/models.js";
 import {buildKindGVRMap, resolveGVR} from "$lib/utils/relationships";
 import {descriptorRegistry} from "$lib/registry";
-import type {APIResource} from "../../../bindings/github.com/Vilsol/klados/internal/cluster/index.js";
+import type {APIResource} from "$api/github.com/Vilsol/klados/internal/cluster/index.js";
 
 export type {KubeContext};
 export {ConnectionStatus};
