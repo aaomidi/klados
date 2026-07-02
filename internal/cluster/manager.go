@@ -92,6 +92,13 @@ type Connection struct {
 	activated         bool
 }
 
+// Context returns the connection-scoped context, cancelled on Disconnect.
+// Anything whose lifetime should not outlive the connection (watches, streams)
+// must derive from it.
+func (c *Connection) Context() context.Context {
+	return c.connCtx
+}
+
 type Manager struct {
 	mu                  deadlock.RWMutex
 	connections         map[string]*Connection

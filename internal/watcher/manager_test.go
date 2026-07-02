@@ -3,12 +3,18 @@ package watcher_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/MarvinJWendt/testza"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
+	k8stesting "k8s.io/client-go/testing"
 
 	"github.com/Vilsol/klados/internal/cluster"
 	"github.com/Vilsol/klados/internal/resource"
@@ -166,4 +172,91 @@ func TestWatchManager_StartWatch_WithOptions_BackCompat(t *testing.T) {
 	err := mgr.StartWatch("ctx", "core.v1.pods", "default", "", watcher.WatchOptions{FieldSelector: "metadata.name=foo"})
 	// fakeProvider returns error — we're only verifying signature compat.
 	testza.AssertNotNil(t, err)
+}
+
+type connProvider struct{ conn *cluster.Connection }
+
+func (p *connProvider) GetConnection(string) (*cluster.Connection, error) { return p.conn, nil }
+
+// A 410 Gone must tear down the watch map entry BEFORE emitting :resync, so the
+// frontend's StartWatch-in-response actually starts a new watch goroutine.
+func TestStartWatch_RestartsAfterGone(t *testing.T) {
+	dyn := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+	dyn.PrependWatchReactor("*", func(k8stesting.Action) (bool, watch.Interface, error) {
+		return true, nil, k8serrors.NewGone("gone")
+	})
+	conn := cluster.NewTestConnection(dyn, nil)
+	defer conn.CloseForTest()
+
+	resyncCh := make(chan struct{}, 8)
+	mgr := watcher.NewWatchManager(&connProvider{conn}, resource.NewEnricherRegistry(), func(name string, _ any) {
+		if strings.HasSuffix(name, ":resync") {
+			resyncCh <- struct{}{}
+		}
+	}, context.Background())
+
+	testza.AssertNoError(t, mgr.StartWatch("ctx", "core.v1.pods", "default", ""))
+	select {
+	case <-resyncCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first watch never hit Gone → resync")
+	}
+
+	// The frontend answers :resync with a fresh list + StartWatch. That second
+	// StartWatch must spawn a NEW goroutine (which hits Gone again → resync).
+	testza.AssertNoError(t, mgr.StartWatch("ctx", "core.v1.pods", "default", ""))
+	select {
+	case <-resyncCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("StartWatch after Gone was a no-op — stale map entry not cleaned up")
+	}
+}
+
+// "Expired" (the reason real apiservers use for stale RVs) must be treated like
+// Gone — resync, not an infinite same-RV retry loop.
+func TestStartWatch_RestartsAfterExpired(t *testing.T) {
+	dyn := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+	dyn.PrependWatchReactor("*", func(k8stesting.Action) (bool, watch.Interface, error) {
+		return true, nil, k8serrors.NewResourceExpired("expired")
+	})
+	conn := cluster.NewTestConnection(dyn, nil)
+	defer conn.CloseForTest()
+
+	resyncCh := make(chan struct{}, 8)
+	mgr := watcher.NewWatchManager(&connProvider{conn}, resource.NewEnricherRegistry(), func(name string, _ any) {
+		if strings.HasSuffix(name, ":resync") {
+			resyncCh <- struct{}{}
+		}
+	}, context.Background())
+
+	testza.AssertNoError(t, mgr.StartWatch("ctx", "core.v1.pods", "default", ""))
+	select {
+	case <-resyncCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Expired error did not trigger resync")
+	}
+}
+
+// Cancelling the connection context must terminate the watch goroutine and
+// remove its map entry so a later StartWatch (post-reconnect) works.
+func TestWatch_CleanedUpOnConnectionClose(t *testing.T) {
+	dyn := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+	fw := watch.NewFake()
+	defer fw.Stop()
+	dyn.PrependWatchReactor("*", func(k8stesting.Action) (bool, watch.Interface, error) {
+		return true, fw, nil
+	})
+	conn := cluster.NewTestConnection(dyn, nil)
+
+	mgr := watcher.NewWatchManager(&connProvider{conn}, resource.NewEnricherRegistry(), func(string, any) {}, context.Background())
+	testza.AssertNoError(t, mgr.StartWatch("ctx", "core.v1.pods", "default", ""))
+	testza.AssertEqual(t, 1, mgr.WatchCountForTest())
+
+	conn.CloseForTest()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for mgr.WatchCountForTest() != 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	testza.AssertEqual(t, 0, mgr.WatchCountForTest())
 }

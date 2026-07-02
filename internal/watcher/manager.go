@@ -28,6 +28,13 @@ func GracePeriodForTest() time.Duration { return gracePeriod }
 // SetGracePeriodForTest overrides the grace period. Test-only helper.
 func SetGracePeriodForTest(d time.Duration) { gracePeriod = d }
 
+// WatchCountForTest returns the number of tracked watches. Test-only helper.
+func (m *WatchManager) WatchCountForTest() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.watches)
+}
+
 // Synthetic event types used by virtual watch sources to bracket a full
 // snapshot replacement (e.g. after a transport reconnect). The frontend
 // ResourceStore consumes these to replace items[] atomically.
@@ -165,15 +172,31 @@ func (m *WatchManager) StartWatch(contextName, gvr, namespace, resourceVersion s
 	eventName := fmt.Sprintf("watch:%s:%s:%s", contextName, gvr, namespace)
 	resyncName := eventName + ":resync"
 
-	ctx, cancel := context.WithCancel(context.Background())
-	m.watches[key] = &watchState{cancel: cancel}
+	ctx, cancel := context.WithCancel(conn.Context())
+	state := &watchState{cancel: cancel}
+	m.watches[key] = state
 
-	go m.runWatch(ctx, ri, enrichers, eventName, resyncName, key, contextName, resourceVersion, opt.FieldSelector)
+	go m.runWatch(ctx, state, ri, enrichers, eventName, resyncName, key, contextName, resourceVersion, opt.FieldSelector)
 	return nil
+}
+
+// removeSelf deletes the map entry for key iff it still belongs to state.
+// Idempotent; safe to call from both the Gone path and the deferred exit path.
+func (m *WatchManager) removeSelf(key watchKey, state *watchState) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if s, ok := m.watches[key]; ok && s == state {
+		if s.graceTimer != nil {
+			s.graceTimer.Stop()
+		}
+		s.cancel()
+		delete(m.watches, key)
+	}
 }
 
 func (m *WatchManager) runWatch(
 	ctx context.Context,
+	state *watchState,
 	ri dynamic.ResourceInterface,
 	enrichers []resource.Enricher,
 	eventName string,
@@ -183,6 +206,8 @@ func (m *WatchManager) runWatch(
 	initialRV string,
 	fieldSelector string,
 ) {
+	defer m.removeSelf(key, state)
+
 	currentRV := initialRV
 	for {
 		select {
@@ -197,8 +222,9 @@ func (m *WatchManager) runWatch(
 			FieldSelector:       fieldSelector,
 		})
 		if err != nil {
-			if k8serrors.IsGone(err) {
+			if k8serrors.IsGone(err) || k8serrors.IsResourceExpired(err) {
 				slox.Warn(m.ctx, "watch RV too old, requesting resync", "event", eventName, "rv", currentRV)
+				m.removeSelf(key, state)
 				m.emitEvent(resyncName, nil)
 				return
 			}
@@ -214,6 +240,7 @@ func (m *WatchManager) runWatch(
 		nextRV, gone := m.processEvents(ctx, wi, enrichers, eventName, contextName, currentRV)
 		if gone {
 			slox.Warn(m.ctx, "watch stream returned Gone, requesting resync", "event", eventName, "rv", currentRV)
+			m.removeSelf(key, state)
 			m.emitEvent(resyncName, nil)
 			return
 		}
