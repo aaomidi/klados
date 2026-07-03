@@ -192,7 +192,7 @@ type prometheusData struct {
 }
 
 type matrixResult struct {
-	Metric map[string]string `json:"metric"`
+	Metric map[string]string   `json:"metric"`
 	Values [][]json.RawMessage `json:"values"`
 }
 

@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/Vilsol/slox"
+	"gopkg.in/yaml.v3"
 	batchv1 "k8s.io/api/batch/v1"
 	errors "k8s.io/apimachinery/pkg/api/errors"
 	apiresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"gopkg.in/yaml.v3"
 
 	"github.com/Vilsol/klados/internal/cluster"
 	"github.com/Vilsol/klados/internal/resource"

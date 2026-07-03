@@ -169,8 +169,8 @@ func TestHelmService_CleanupTestPods(t *testing.T) {
 			Name:      "myrel-test",
 			Namespace: "ns1",
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by":  "Helm",
-				"meta.helm.sh/release-name":     "myrel",
+				"app.kubernetes.io/managed-by": "Helm",
+				"meta.helm.sh/release-name":    "myrel",
 			},
 			Annotations: map[string]string{
 				"helm.sh/hook": "test-success",

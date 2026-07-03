@@ -45,8 +45,8 @@ func TestHPAEnricher_TargetsDisplay_Resource(t *testing.T) {
 				map[string]any{
 					"type": "Resource",
 					"resource": map[string]any{
-						"name":                       "cpu",
-						"currentAverageUtilization":  int64(60),
+						"name":                      "cpu",
+						"currentAverageUtilization": int64(60),
 					},
 				},
 			},

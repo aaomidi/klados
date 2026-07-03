@@ -8,8 +8,8 @@ import (
 	"github.com/Vilsol/slox"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 )
 
 // filteredWarnings suppresses known harmless deprecation warnings while forwarding all others.

@@ -39,15 +39,17 @@ func (s *stubDiscovery) ServerResourcesForGroupVersion(groupVersion string) (*me
 	return nil, nil
 }
 
-func (s *stubDiscovery) ServerGroups() (*metav1.APIGroupList, error) { return &metav1.APIGroupList{}, nil }
+func (s *stubDiscovery) ServerGroups() (*metav1.APIGroupList, error) {
+	return &metav1.APIGroupList{}, nil
+}
 func (s *stubDiscovery) ServerGroupsAndResources() ([]*metav1.APIGroup, []*metav1.APIResourceList, error) {
 	return nil, s.resources, nil
 }
-func (s *stubDiscovery) ServerVersion() (*version.Info, error) { return &version.Info{}, nil }
+func (s *stubDiscovery) ServerVersion() (*version.Info, error)        { return &version.Info{}, nil }
 func (s *stubDiscovery) OpenAPISchema() (*openapi_v2.Document, error) { return nil, nil }
-func (s *stubDiscovery) OpenAPIV3() openapi.Client { return nil }
-func (s *stubDiscovery) RESTClient() restclient.Interface { return nil }
-func (s *stubDiscovery) WithLegacy() discovery.DiscoveryInterface { return s }
+func (s *stubDiscovery) OpenAPIV3() openapi.Client                    { return nil }
+func (s *stubDiscovery) RESTClient() restclient.Interface             { return nil }
+func (s *stubDiscovery) WithLegacy() discovery.DiscoveryInterface     { return s }
 
 func TestDiscoverResources_EmitsEnrichedPayload(t *testing.T) {
 	disc := &stubDiscovery{

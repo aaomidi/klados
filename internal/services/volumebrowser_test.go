@@ -17,23 +17,23 @@ import (
 // ---- fakes ----
 
 type fakeVBManager struct {
-	mu             sync.Mutex
-	spawnCalls     int
-	stopCalls      []string
-	stopAllCalled  bool
-	attachCalls    [][2]string
-	listResult     []*volumebrowser.ManagedPod
-	scanResult     []volumebrowser.OrphanPod
-	scanErr        error
-	cleanupCalls   []string
-	cleanupErr     error
-	findResult     *volumebrowser.ManagedPod
-	spawnErr       error
-	lastSpawnReq   volumebrowser.SpawnRequest
+	mu              sync.Mutex
+	spawnCalls      int
+	stopCalls       []string
+	stopAllCalled   bool
+	attachCalls     [][2]string
+	listResult      []*volumebrowser.ManagedPod
+	scanResult      []volumebrowser.OrphanPod
+	scanErr         error
+	cleanupCalls    []string
+	cleanupErr      error
+	findResult      *volumebrowser.ManagedPod
+	spawnErr        error
+	lastSpawnReq    volumebrowser.SpawnRequest
 	lastResolvedCfg config.VolumeBrowserConfig
-	spawnResult    *volumebrowser.ManagedPod
-	callOrder      []string
-	stopAllDelay   time.Duration
+	spawnResult     *volumebrowser.ManagedPod
+	callOrder       []string
+	stopAllDelay    time.Duration
 }
 
 func (f *fakeVBManager) cleanupCallsLen() int {

@@ -33,9 +33,25 @@
       panelData = event.data;
     });
 
+    // The parent replies to panel:ready with panel:init, but our subscription
+    // above only goes live after the transport registers it (a network round
+    // trip). A single ready ping can race ahead of that and the reply is lost,
+    // leaving us stuck on "Loading panel…". Re-announce until the data lands.
+    let attempts = 0;
     Events.Emit("panel:ready", panelId);
+    const retry = setInterval(() => {
+      if (panelData || attempts >= 40) {
+        clearInterval(retry);
+        return;
+      }
+      attempts++;
+      Events.Emit("panel:ready", panelId);
+    }, 150);
 
-    return () => unsub();
+    return () => {
+      unsub();
+      clearInterval(retry);
+    };
   });
 
   function popIn() {

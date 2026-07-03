@@ -38,8 +38,8 @@ func TestGenerateFixtures(t *testing.T) {
 	}
 
 	cases := []struct {
-		path    string
-		secret  corev1.Secret
+		path   string
+		secret corev1.Secret
 	}{
 		{"release-deployed.secret.yaml", makeReleaseSecret(t, "deployed-app", "default", 1, common.StatusDeployed, map[string]any{"replicas": 2}, "")},
 		{"release-failed.secret.yaml", makeReleaseSecret(t, "failed-app", "default", 1, common.StatusFailed, nil, "")},

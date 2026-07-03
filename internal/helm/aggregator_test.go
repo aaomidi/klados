@@ -14,9 +14,9 @@ import (
 func TestAggregator_CollapseSnapshot(t *testing.T) {
 	// 4 releases × varying revisions = 10 total secrets. Expect 4 virtual rows.
 	specs := []struct {
-		name  string
-		ns    string
-		revs  []int
+		name string
+		ns   string
+		revs []int
 	}{
 		{"alpha", "default", []int{1, 2, 3}},
 		{"beta", "default", []int{1, 2}},

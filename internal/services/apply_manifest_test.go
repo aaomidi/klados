@@ -5,10 +5,10 @@ import (
 
 	"github.com/MarvinJWendt/testza"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fakediscovery "k8s.io/client-go/discovery/fake"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	kfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
-	fakediscovery "k8s.io/client-go/discovery/fake"
 
 	"github.com/Vilsol/klados/internal/cluster"
 	"github.com/Vilsol/klados/internal/resource"
@@ -138,4 +138,3 @@ metadata:
 	testza.AssertLen(t, results, 1)
 	testza.AssertNotEqual(t, "", results[0].Error)
 }
-

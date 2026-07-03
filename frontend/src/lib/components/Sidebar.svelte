@@ -225,9 +225,22 @@
         .catch((e) => log.warn("ListAPIResources failed", {error: String(e)}));
 
       loadForwards();
-      unsubPF = Events.On(`portforward:${ctx}:updated`, () => {
+      const ctxAtSub = ctx;
+      const onUpdated = Events.On(`portforward:${ctx}:updated`, () => {
         loadForwards();
       });
+      // Reconcile on refocus as a safety net: the `updated` event is only a
+      // hint to re-list, so recover if one was missed while backgrounded.
+      const onVisible = () => {
+        if (document.visibilityState === "visible" && clusterStore.activeContext === ctxAtSub) {
+          loadForwards();
+        }
+      };
+      document.addEventListener("visibilitychange", onVisible);
+      unsubPF = () => {
+        onUpdated();
+        document.removeEventListener("visibilitychange", onVisible);
+      };
     }
 
     loadPluginEntries();

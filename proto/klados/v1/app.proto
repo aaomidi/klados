@@ -23,10 +23,17 @@ service AppService {
   rpc BrowseKubeconfigFile(EmptyRequest) returns (AppBrowseFileResponse);
   rpc BrowseManifestFile(EmptyRequest) returns (AppBrowseFileResponse);
   rpc BrowsePluginFile(EmptyRequest) returns (AppBrowseFileResponse);
+  // Desktop only: open a URL in the system default browser. In the web build
+  // the frontend uses window.open directly instead.
+  rpc OpenURL(AppOpenURLRequest) returns (EmptyResponse);
 }
 
 message AppBrowseFileResponse {
   string value = 1;
+}
+
+message AppOpenURLRequest {
+  string url = 1;
 }
 
 message SaveUIStateRequest {

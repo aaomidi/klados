@@ -117,7 +117,9 @@ func (k *k8sClient) Update(gvr, ns string, obj map[string]any) (map[string]any, 
 func (k *k8sClient) Delete(gvr, ns, name string) error {
 	req, _ := json.Marshal(map[string]any{"gvr": gvr, "namespace": ns, "name": name})
 	resp := internal.Call("k8s.delete", req)
-	var result struct{ Error string `json:"error"` }
+	var result struct {
+		Error string `json:"error"`
+	}
 	return unmarshalResponse(resp, &result)
 }
 
@@ -147,14 +149,18 @@ func (s *storageClient) Get(key string) (string, bool, error) {
 func (s *storageClient) Set(key, value string) error {
 	req, _ := json.Marshal(map[string]any{"key": key, "value": value})
 	resp := internal.Call("storage.set", req)
-	var result struct{ Error string `json:"error"` }
+	var result struct {
+		Error string `json:"error"`
+	}
 	return unmarshalResponse(resp, &result)
 }
 
 func (s *storageClient) Delete(key string) error {
 	req, _ := json.Marshal(map[string]any{"key": key})
 	resp := internal.Call("storage.delete", req)
-	var result struct{ Error string `json:"error"` }
+	var result struct {
+		Error string `json:"error"`
+	}
 	return unmarshalResponse(resp, &result)
 }
 
