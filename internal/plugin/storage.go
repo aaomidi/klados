@@ -2,9 +2,9 @@ package plugin
 
 import (
 	"encoding/json"
+	"github.com/sasha-s/go-deadlock"
 	"os"
 	"path/filepath"
-	"github.com/sasha-s/go-deadlock"
 	"time"
 
 	"github.com/adrg/xdg"

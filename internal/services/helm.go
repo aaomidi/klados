@@ -471,4 +471,3 @@ func (g *engineResourceGetter) KnownGVRs(contextName string) []string {
 	}
 	return out
 }
-

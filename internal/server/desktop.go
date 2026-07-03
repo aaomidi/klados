@@ -21,6 +21,8 @@ type Desktop interface {
 	// OpenPanelWindow opens (or focuses) a real OS window for a bottom-panel
 	// tab, loading the SPA with ?panel={id}.
 	OpenPanelWindow(panelID, title string) error
+	// OpenURL opens a URL in the system default browser.
+	OpenURL(url string) error
 }
 
 var errDesktopOnly = errors.New("only available in the desktop app")
@@ -56,6 +58,16 @@ func (h *AppHandler) BrowsePluginFile(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeUnknown, err)
 	}
 	return connect.NewResponse(&kladosv1.AppBrowseFileResponse{Value: path}), nil
+}
+
+func (h *AppHandler) OpenURL(ctx context.Context, req *connect.Request[kladosv1.AppOpenURLRequest]) (*connect.Response[kladosv1.EmptyResponse], error) {
+	if h.desktop == nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, errDesktopOnly)
+	}
+	if err := h.desktop.OpenURL(req.Msg.GetUrl()); err != nil {
+		return nil, connect.NewError(connect.CodeUnknown, err)
+	}
+	return connect.NewResponse(&kladosv1.EmptyResponse{}), nil
 }
 
 // WindowHandler implements kladosv1connect.WindowServiceHandler.

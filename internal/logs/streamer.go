@@ -7,9 +7,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/sasha-s/go-deadlock"
 	"io"
 	"sync"
-	"github.com/sasha-s/go-deadlock"
 
 	"github.com/Vilsol/slox"
 	corev1 "k8s.io/api/core/v1"

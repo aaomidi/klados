@@ -13,10 +13,10 @@ func TestResourceQuotaEnricher_ResourceCount(t *testing.T) {
 	obj := &unstructured.Unstructured{Object: map[string]any{
 		"spec": map[string]any{
 			"hard": map[string]any{
-				"cpu":            "4",
-				"memory":         "8Gi",
-				"pods":           "10",
-				"requests.cpu":   "2",
+				"cpu":             "4",
+				"memory":          "8Gi",
+				"pods":            "10",
+				"requests.cpu":    "2",
 				"requests.memory": "4Gi",
 			},
 		},

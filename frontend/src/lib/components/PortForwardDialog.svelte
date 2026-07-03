@@ -1,9 +1,9 @@
 <script lang="ts">
   import {X} from "lucide-svelte";
   import {Combobox} from "@klados/ui";
-  import {StartForward} from "$api/github.com/Vilsol/klados/internal/services/portforwardservice.js";
+  import {StartForward, ListForwards} from "$api/github.com/Vilsol/klados/internal/services/portforwardservice.js";
   import {TargetKind} from "$api/github.com/Vilsol/klados/internal/portforward/models.js";
-  import {Browser, Events} from "@wailsio/runtime";
+  import {Browser} from "@wailsio/runtime";
   import {capabilitiesStore} from "$lib/stores/capabilities.svelte.js";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import {unwrapError} from "$lib/utils/async.js";
@@ -54,6 +54,27 @@
   let submitting = $state(false);
   let openInBrowser = $state(true);
 
+  // Poll ListForwards until the given forward reports active with a real local
+  // port, then open it in the (system, on desktop) browser exactly once.
+  async function openWhenActive(ctx: string, id: string) {
+    for (let i = 0; i < 50; i++) {
+      try {
+        const forwards = (await ListForwards(ctx)) as Array<{id: string; status?: string; localPort?: number}>;
+        const fw = forwards.find((f) => f.id === id);
+        if (fw?.status === "active" && fw.localPort && fw.localPort > 0) {
+          Browser.OpenURL(`http://localhost:${fw.localPort}`);
+          return;
+        }
+        if (fw && (fw.status === "failed" || fw.status === "stopped")) {
+          return;
+        }
+      } catch {
+        // transient — keep polling
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+
   async function submit() {
     submitting = true;
     try {
@@ -78,30 +99,11 @@
       log.info("Port forward started", {localPort: local, remotePort: remote});
       oncreated?.(spec);
       if (openInBrowser) {
-        // Open the browser on the FIRST active status for this newly created
-        // forward only. Bound the listener with a timeout so it can't fire on
-        // a later ReconnectSaved → active for the same spec.id after the user
-        // disconnects and reconnects the cluster.
-        let done = false;
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        const cleanup = () => {
-          if (done) return;
-          done = true;
-          if (timer) clearTimeout(timer);
-          unsub();
-        };
-        const unsub = Events.On(`portforward:${ctx}:${spec.id}`, (e: {data: {status?: string; localPort?: number}}) => {
-          // Guard against re-entry: if a flapping forward fires `active` again
-          // before our unsub takes effect, swallow the duplicate so we don't
-          // open a second browser tab for the same connect.
-          if (done) return;
-          const fw = e.data;
-          if (fw?.status === "active" && fw?.localPort && fw.localPort > 0) {
-            cleanup();
-            Browser.OpenURL(`http://localhost:${fw.localPort}`);
-          }
-        });
-        timer = setTimeout(cleanup, 60_000);
+        // Poll for the forward to go active (the tunnel establishes async and
+        // gets its real local port then) and open the browser once. Polling
+        // rather than listening avoids racing the `active` status event, which
+        // can fire before a freshly-registered event subscription goes live.
+        void openWhenActive(ctx, spec.id);
       }
       onclose();
     } catch (e: unknown) {

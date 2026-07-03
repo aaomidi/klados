@@ -731,4 +731,3 @@ func (s *PluginService) findNewPluginDir() (string, error) {
 	}
 	return "", fmt.Errorf("could not find newly installed plugin dir")
 }
-

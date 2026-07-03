@@ -11,7 +11,7 @@ import (
 
 func TestJobEnricher_StatusDisplay_Complete(t *testing.T) {
 	obj := &unstructured.Unstructured{Object: map[string]any{
-		"spec":   map[string]any{"completions": int64(1)},
+		"spec": map[string]any{"completions": int64(1)},
 		"status": map[string]any{
 			"succeeded": int64(1),
 			"conditions": []any{
@@ -29,7 +29,7 @@ func TestJobEnricher_StatusDisplay_Complete(t *testing.T) {
 
 func TestJobEnricher_StatusDisplay_Failed(t *testing.T) {
 	obj := &unstructured.Unstructured{Object: map[string]any{
-		"spec":   map[string]any{"completions": int64(1)},
+		"spec": map[string]any{"completions": int64(1)},
 		"status": map[string]any{
 			"conditions": []any{
 				map[string]any{"type": "Failed", "status": "True"},

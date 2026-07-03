@@ -54,8 +54,8 @@ func (f *fakeRunner) Test(_ context.Context, _, _, _ string, opts TestOpts) (Tes
 }
 
 type fakeDeleter struct {
-	mu       sync.Mutex
-	deleted  []string
+	mu        sync.Mutex
+	deleted   []string
 	deleteErr error
 }
 

@@ -63,10 +63,10 @@ func makeReleaseSecret(t *testing.T, name, ns string, rev int, status common.Sta
 
 // fakeSecretLister is an in-memory secretLister.
 type fakeSecretLister struct {
-	mu     sync.Mutex
-	by     map[string][]corev1.Secret // key: contextName + "/" + namespace
-	rv     string
-	err    error
+	mu  sync.Mutex
+	by  map[string][]corev1.Secret // key: contextName + "/" + namespace
+	rv  string
+	err error
 }
 
 func newFakeSecretLister() *fakeSecretLister {
@@ -101,8 +101,8 @@ func (f *fakeSecretLister) ListSecrets(_ context.Context, contextName, namespace
 // fakeResourceGetter implements resourceGetter for owned_test.go.
 type fakeResourceGetter struct {
 	mu        sync.Mutex
-	exists    map[string]bool                          // key: gvr|ns|name
-	byLabel   map[string][]map[string]any              // key: gvr|ns
+	exists    map[string]bool             // key: gvr|ns|name
+	byLabel   map[string][]map[string]any // key: gvr|ns
 	knownGVRs []string
 }
 

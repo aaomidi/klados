@@ -8,9 +8,9 @@ import (
 	"github.com/Vilsol/klados/internal/cluster"
 	"github.com/Vilsol/klados/internal/config"
 	"github.com/Vilsol/klados/internal/resource"
+	discoveryiface "k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	discoveryiface "k8s.io/client-go/discovery"
 )
 
 // NewResourceServiceForTest creates a ResourceService for unit testing

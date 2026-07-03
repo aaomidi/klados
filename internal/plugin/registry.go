@@ -118,19 +118,19 @@ type PluginInfo struct {
 }
 
 type Registry struct {
-	mu              deadlock.RWMutex
-	plugins         []*LoadedPlugin
-	sidebarEntries  []SidebarEntry
-	detailTabs      []DetailTabEntry
-	commands        []CommandEntry
-	overviewFields  []OverviewFieldEntry
-	listColumns     []ListColumnEntry
+	mu               deadlock.RWMutex
+	plugins          []*LoadedPlugin
+	sidebarEntries   []SidebarEntry
+	detailTabs       []DetailTabEntry
+	commands         []CommandEntry
+	overviewFields   []OverviewFieldEntry
+	listColumns      []ListColumnEntry
 	contextMenuItems []ContextMenuEntry
-	headerWidgets   []HeaderWidgetEntry
+	headerWidgets    []HeaderWidgetEntry
 	statusBarWidgets []StatusBarEntry
 	metricQueries    []MetricQueryEntry
-	pluginNames     map[string]struct{}
-	ctx             context.Context
+	pluginNames      map[string]struct{}
+	ctx              context.Context
 }
 
 func NewRegistry(ctx context.Context) *Registry {

@@ -3,9 +3,9 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"github.com/sasha-s/go-deadlock"
 	"os"
 	"strings"
-	"github.com/sasha-s/go-deadlock"
 	"time"
 
 	"github.com/Vilsol/klados/internal/config"
@@ -684,10 +684,10 @@ type ResourceSubresources struct {
 // kubectl's column rendering.
 type AdditionalPrinterColumn struct {
 	Name        string `json:"name"`
-	Type        string `json:"type"`        // "string" | "integer" | "number" | "boolean" | "date"
+	Type        string `json:"type"` // "string" | "integer" | "number" | "boolean" | "date"
 	Format      string `json:"format,omitempty"`
 	Description string `json:"description,omitempty"`
-	Priority    int32  `json:"priority"`    // 0 = visible by default
+	Priority    int32  `json:"priority"` // 0 = visible by default
 	JSONPath    string `json:"jsonPath"`
 }
 

@@ -58,6 +58,10 @@ func (d *wailsDesktop) BrowseManifestFile() (string, error) {
 	return string(data), nil
 }
 
+func (d *wailsDesktop) OpenURL(url string) error {
+	return d.app.Browser.OpenURL(url)
+}
+
 func (d *wailsDesktop) OpenPanelWindow(panelID, title string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -147,8 +151,8 @@ func desktopMain(assets embed.FS) error {
 		DevToolsEnabled: true,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
-			Backdrop:               application.MacBackdropTranslucent,
-			TitleBar:               application.MacTitleBarHiddenInset,
+			Backdrop:                application.MacBackdropTranslucent,
+			TitleBar:                application.MacTitleBarHiddenInset,
 		},
 		BackgroundColour: application.NewRGB(27, 38, 54),
 		URL:              desktop.serverURL + "/",

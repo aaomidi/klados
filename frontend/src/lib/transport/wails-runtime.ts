@@ -3,7 +3,8 @@
 // to web APIs. Wired in via a Vite alias so app code and the generated
 // models.js files keep their imports unchanged.
 
-import { events, fromJsonBytes, toJsonBytes } from "./clients";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { app, events, fromJsonBytes, toJsonBytes } from "./clients";
 
 export interface WailsEvent {
 	name: string;
@@ -54,14 +55,17 @@ class EventMux {
 	}
 
 	// Coalesce bursts of subscription changes (page mounts register several
-	// topics in one tick) into a single stream reopen.
+	// topics in one tick) into a single stream reopen. A microtask coalesces
+	// same-tick subscriptions without adding wall-clock latency — important
+	// because a subscribe-then-immediately-await-reply handshake (pop-out
+	// panels) must get its subscription live as fast as possible.
 	private scheduleReopen() {
 		if (this.reopenScheduled) return;
 		this.reopenScheduled = true;
-		setTimeout(() => {
+		queueMicrotask(() => {
 			this.reopenScheduled = false;
 			this.reopen();
-		}, 20);
+		});
 	}
 
 	private reopen() {
@@ -122,9 +126,20 @@ export const Events = {
 };
 
 export const Browser = {
-	OpenURL(url: string): Promise<void> {
-		window.open(url, "_blank", "noopener,noreferrer");
-		return Promise.resolve();
+	// Desktop opens the system default browser via the AppService RPC (a Wails
+	// webview's window.open would try to navigate inside the app, not launch
+	// Safari/Chrome). Server mode returns Unimplemented, and we fall back to
+	// window.open — correct for a real browser tab.
+	async OpenURL(url: string): Promise<void> {
+		try {
+			await app.openURL({ url });
+		} catch (err) {
+			if (err instanceof ConnectError && err.code === Code.Unimplemented) {
+				window.open(url, "_blank", "noopener,noreferrer");
+				return;
+			}
+			throw err;
+		}
 	},
 };
 

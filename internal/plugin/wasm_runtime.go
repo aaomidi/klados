@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sasha-s/go-deadlock"
 	"os"
 	"path/filepath"
-	"github.com/sasha-s/go-deadlock"
 
 	"github.com/Vilsol/slox"
 	"github.com/adrg/xdg"

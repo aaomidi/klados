@@ -214,4 +214,3 @@ func (s *DrainService) UncordonNode(contextName, nodeName string) error {
 	helper := &drain.Helper{Ctx: s.ctx, Client: conn.Clientset, Out: &bytes.Buffer{}, ErrOut: &bytes.Buffer{}}
 	return drain.RunCordonOrUncordon(helper, node, false)
 }
-

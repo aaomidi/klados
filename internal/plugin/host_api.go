@@ -503,7 +503,6 @@ func (h *hostAPI) dispatch(method string, reqBytes []byte) []byte {
 	}
 }
 
-
 func errorJSON(msg string) []byte {
 	b, _ := json.Marshal(map[string]string{"error": msg})
 	return b

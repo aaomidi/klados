@@ -2,10 +2,10 @@ package plugin
 
 import (
 	"context"
+	"github.com/sasha-s/go-deadlock"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/sasha-s/go-deadlock"
 	"time"
 
 	"github.com/Vilsol/slox"
