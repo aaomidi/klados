@@ -5,6 +5,8 @@ import type {DescriptorDef} from "$lib/registry/index";
 // Mock all service bindings used by child components
 vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   GetEvents: vi.fn().mockResolvedValue([]),
+  StartWatch: vi.fn().mockResolvedValue(undefined),
+  StopWatch: vi.fn().mockResolvedValue(undefined),
   UpdateResource: vi.fn().mockResolvedValue({}),
   DeleteResource: vi.fn().mockResolvedValue(undefined),
   ForceDeleteResource: vi.fn().mockResolvedValue(undefined),

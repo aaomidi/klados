@@ -20,6 +20,7 @@ export interface EventItem {
   lastTimestamp?: string;
   eventTime?: string;
   involvedObject?: Partial<InvolvedObjectRef>;
+  related?: Partial<InvolvedObjectRef>;
   source?: {component?: string; host?: string};
   reportingController?: string;
   [k: string]: KubernetesResource | undefined;

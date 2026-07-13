@@ -332,7 +332,7 @@
             />
           {/key}
         {:else if panel === 'events'}
-          <PanelCmp {ctxName} {namespace} {uid} />
+          <PanelCmp {ctxName} {namespace} {uid} {onopenresource} />
         {:else if panel === 'labels'}
           <div class="overflow-auto h-full">
             <PanelCmp
