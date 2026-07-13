@@ -84,6 +84,29 @@ describe("ContainerCard", () => {
     expect(onopencontainer).toHaveBeenCalledWith("terminal", "app");
   });
 
+  it("hides the Shell shortcut for containers that are not running", () => {
+    const onopencontainer = vi.fn();
+    const status = {
+      name: "app",
+      ready: false,
+      state: {terminated: {reason: "Error", exitCode: 1}},
+    };
+    render(ContainerCard, {props: {container: runningContainer, status, onopencontainer}});
+    expect(screen.queryByRole("button", {name: "Shell"})).toBeNull();
+    expect(screen.getByRole("button", {name: "Logs"})).toBeTruthy();
+  });
+
+  it("hides the Shell shortcut for waiting containers", () => {
+    const onopencontainer = vi.fn();
+    const status = {
+      name: "app",
+      ready: false,
+      state: {waiting: {reason: "CrashLoopBackOff"}},
+    };
+    render(ContainerCard, {props: {container: runningContainer, status, onopencontainer}});
+    expect(screen.queryByRole("button", {name: "Shell"})).toBeNull();
+  });
+
   it("compact variant shows state and exit code without detail rows", () => {
     const status = {
       name: "migrate",

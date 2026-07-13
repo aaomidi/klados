@@ -82,7 +82,7 @@
         >
           Logs
         </button>
-        {#if !compact}
+        {#if !compact && info.kind === 'running'}
           <button
             type="button"
             onclick={() => onopencontainer?.('terminal', container.name)}
@@ -165,55 +165,60 @@
     {/if}
 
     {#if envOpen}
-      <div class="mt-1.5 pl-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+      <div class="mt-1.5 rounded-md border border-border divide-y divide-border/60 overflow-hidden">
         {#each envFrom as src}
-          <span class="text-xs font-mono text-muted">envFrom</span>
-          {#if src.gvr && src.name && onopenresource}
-            <button type="button" onclick={() => openRef(src)} class="text-xs font-mono text-accent hover:underline text-left">
-              {src.text}
-            </button>
-          {:else}
-            <span class="text-xs font-mono text-muted">{src.text}</span>
-          {/if}
-        {/each}
-        {#each container.env ?? [] as e}
-          {@const src = envSource(e)}
-          <CopyableValue value={e.name} class="text-xs font-mono text-accent" />
-          {#if src}
+          <div class="grid grid-cols-[minmax(8rem,30%)_1fr] gap-x-4 px-2.5 py-1 items-baseline">
+            <span class="text-xs font-mono text-muted">envFrom</span>
             {#if src.gvr && src.name && onopenresource}
-              <button type="button" onclick={() => openRef(src)} class="text-xs font-mono text-accent hover:underline text-left">
+              <button type="button" onclick={() => openRef(src)} class="text-xs font-mono text-accent hover:underline text-left justify-self-start">
                 {src.text}
               </button>
             {:else}
               <span class="text-xs font-mono text-muted">{src.text}</span>
             {/if}
-          {:else}
-            <CopyableValue value={e.value ?? '—'} class="text-xs font-mono text-muted" />
-          {/if}
+          </div>
+        {/each}
+        {#each container.env ?? [] as e}
+          {@const src = envSource(e)}
+          <div class="grid grid-cols-[minmax(8rem,30%)_1fr] gap-x-4 px-2.5 py-1 items-baseline">
+            <CopyableValue value={e.name} class="text-xs font-mono text-accent break-all" />
+            {#if src}
+              {#if src.gvr && src.name && onopenresource}
+                <button type="button" onclick={() => openRef(src)} class="text-xs font-mono text-accent hover:underline text-left justify-self-start">
+                  {src.text}
+                </button>
+              {:else}
+                <span class="text-xs font-mono text-muted">{src.text}</span>
+              {/if}
+            {:else}
+              <CopyableValue value={e.value ?? '—'} class="text-xs font-mono text-muted break-all" />
+            {/if}
+          </div>
         {/each}
       </div>
     {/if}
 
     {#if mountsOpen}
-      <div class="mt-1.5 pl-3 flex flex-col gap-1">
+      <div class="mt-1.5 rounded-md border border-border divide-y divide-border/60 overflow-hidden">
         {#each mounts as m}
           {@const src = mountSource(m, volumes)}
-          <div class="flex items-center gap-2 text-xs min-w-0">
-            <span class="font-mono text-accent truncate">{m.mountPath}</span>
-            <span class="text-muted shrink-0">←</span>
-            {#if src.gvr && src.name && onopenresource}
-              <button type="button" onclick={() => openRef(src)} class="font-mono text-accent hover:underline shrink-0">
-                {src.text}
-              </button>
-            {:else}
-              <span class="font-mono text-muted shrink-0">{src.text}</span>
-            {/if}
+          <div class="flex items-center gap-2 px-2.5 py-1 text-xs min-w-0">
+            <CopyableValue value={m.mountPath} class="font-mono break-all min-w-0" />
             {#if m.subPath}
-              <span class="font-mono text-muted">/{m.subPath}</span>
+              <span class="font-mono text-muted shrink-0">/{m.subPath}</span>
             {/if}
             {#if m.readOnly}
-              <span class="px-1.5 py-0.5 rounded bg-surface border border-border text-muted text-[10px]">RO</span>
+              <span class="px-1.5 py-0.5 rounded bg-surface border border-border text-muted text-[10px] shrink-0">RO</span>
             {/if}
+            <span class="ml-auto shrink-0 pl-4">
+              {#if src.gvr && src.name && onopenresource}
+                <button type="button" onclick={() => openRef(src)} class="font-mono text-accent hover:underline">
+                  {src.text}
+                </button>
+              {:else}
+                <span class="font-mono text-muted">{src.text}</span>
+              {/if}
+            </span>
           </div>
         {/each}
       </div>
