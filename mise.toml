@@ -6,7 +6,6 @@
 node = "25.8.1"
 "aqua:tinygo-org/tinygo" = "latest"
 pnpm = "10"
-jj = "latest"
 go = "1.26.0"
 
 [tasks."generate:plugin-types"]

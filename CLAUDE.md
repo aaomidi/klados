@@ -134,7 +134,7 @@ All callbacks receive `WailsEvent { name, data }` — always unwrap with `wailsE
 
 ## VCS
 
-This repo uses Jujutsu (`jj`). At the end of every unit of work (bugfix, feature, small change, etc.), create a new logical `jj` commit via the `jj-vcs` skill. Never leave work uncommitted.
+This repo uses plain git. At the end of every unit of work (bugfix, feature, small change, etc.), create a logical git commit. Never leave work uncommitted.
 
 ## Conventions
 
