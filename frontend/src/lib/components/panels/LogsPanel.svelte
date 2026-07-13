@@ -15,11 +15,13 @@
     ctxName,
     namespace,
     name,
+    initialContainer = "",
   }: {
     obj: Record<string, KubernetesResource>;
     ctxName: string;
     namespace: string;
     name: string;
+    initialContainer?: string;
   } = $props();
 
   const containers = $derived<KubernetesResource[]>([
@@ -28,6 +30,12 @@
   ]);
 
   let selectedContainer = $state("");
+
+  $effect(() => {
+    if (initialContainer) {
+      selectedContainer = initialContainer;
+    }
+  });
   let timestamps = $state(false);
   let previous = $state(false);
 

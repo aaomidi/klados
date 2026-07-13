@@ -22,7 +22,9 @@ vi.mock("@xterm/addon-clipboard", () => ({ClipboardAddon: vi.fn()}));
 vi.mock("@xterm/addon-search", () => ({SearchAddon: vi.fn()}));
 vi.mock("@xterm/addon-web-links", () => ({WebLinksAddon: vi.fn()}));
 
-// codemirror-json-schema/yaml has a missing internal file in the installed dist
+// codemirror-json-schema has missing internal files in the installed dist
+// (dist/index.js imports dist/features/completion which doesn't exist)
+vi.mock("codemirror-json-schema", () => ({stateExtensions: vi.fn(() => []), handleRefresh: vi.fn()}));
 vi.mock("codemirror-json-schema/yaml", () => ({yamlSchema: vi.fn(() => [])}));
 
 // jsdom doesn't provide matchMedia

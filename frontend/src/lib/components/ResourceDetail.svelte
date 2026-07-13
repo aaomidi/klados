@@ -182,6 +182,12 @@
   });
   const pluginTabs = $derived(slotRegistry.getDetailTabs(gvr));
   let activePanel = $state("");
+  let panelContainer = $state("");
+
+  function openContainer(panel: "logs" | "terminal", container: string) {
+    panelContainer = container;
+    activePanel = panel;
+  }
   $effect(() => {
     const allPanels = [...visiblePanels, ...pluginTabs.map((t) => t.id)];
     if (allPanels.length > 0 && !allPanels.includes(activePanel)) {
@@ -306,6 +312,7 @@
             {name}
             {onopenowner}
             {onopenresource}
+            onopencontainer={openContainer}
           />
         {:else if panel === 'yaml'}
           {#key uid}
@@ -343,11 +350,11 @@
             />
           </div>
         {:else if panel === 'containers'}
-          <div class="overflow-auto h-full"><PanelCmp {obj} {ctxName} /></div>
+          <div class="overflow-auto h-full"><PanelCmp {obj} {ctxName} {onopenresource} onopencontainer={openContainer} /></div>
         {:else if panel === 'deployment-detail'}
           <div class="overflow-auto h-full"><PanelCmp {obj} /></div>
         {:else if panel === 'logs' || panel === 'terminal' || panel === 'aggregate-logs'}
-          <PanelCmp {obj} {ctxName} {namespace} {name} />
+          <PanelCmp {obj} {ctxName} {namespace} {name} initialContainer={panelContainer} />
         {:else if panel === 'service'}
           <PanelCmp {obj} {ctxName} />
         {:else if panel === 'ingress' || panel === 'configmap' || panel === 'secret' || panel === 'node' || panel === 'rules'}

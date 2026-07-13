@@ -6,7 +6,7 @@
   import {getControllerRef, type ControllerRef} from "$lib/utils/relationships";
   import {clusterStore} from "$lib/stores/cluster.svelte";
 
-  import {SectionHeader, KeyValueBadge, EmptyState, StatusBadge, KeyValuePairEditor, CopyableValue} from "@klados/ui";
+  import {SectionHeader, KeyValueBadge, EmptyState, KeyValuePairEditor, CopyableValue} from "@klados/ui";
   import {slotRegistry} from "$lib/plugins/slots.svelte.js";
   import OwnerChain from "./OwnerChain.svelte";
   import {loadPluginComponent} from "$lib/plugins/loader.js";
@@ -14,7 +14,7 @@
   import {UpdateResource} from "$api/github.com/Vilsol/klados/internal/services/resourceservice.js";
   import {notificationStore} from "$lib/stores/notification.svelte";
   import PortForwardDialog from "$lib/components/PortForwardDialog.svelte";
-  import PortButton from "$lib/components/PortButton.svelte";
+  import ContainerSections from "./ContainerSections.svelte";
   import type {KubernetesResource} from "$lib/types";
 
   let {
@@ -27,6 +27,7 @@
     name = "",
     onopenowner,
     onopenresource,
+    onopencontainer,
   }: {
     obj: Record<string, KubernetesResource>;
     onupdate?: (updated: Record<string, KubernetesResource>) => void;
@@ -37,6 +38,7 @@
     name?: string;
     onopenowner?: (ref: ControllerRef, namespace: string) => void;
     onopenresource?: (gvr: string, namespace: string, name: string) => void;
+    onopencontainer?: (panel: "logs" | "terminal", container: string) => void;
   } = $props();
 
   const basePluginURL = $derived(streamingStore.config ? streamingStore.pluginsBaseUrl() : null);
@@ -124,52 +126,9 @@
 
   // Containers state
   const hasContainersPanel = $derived(descriptor.detailPanels.includes("containers"));
-  const containers = $derived<KubernetesResource[]>(obj.spec?.containers ?? []);
-  const initContainers = $derived<KubernetesResource[]>(obj.spec?.initContainers ?? []);
   const conditions = $derived<KubernetesResource[]>(obj.status?.conditions ?? []);
 
   let pfPort = $state<number | null>(null);
-
-  function containerStatus(cname: string): KubernetesResource {
-    return (obj.status?.containerStatuses ?? []).find((s: KubernetesResource) => s.name === cname);
-  }
-
-  function initContainerStatus(cname: string): KubernetesResource {
-    return (obj.status?.initContainerStatuses ?? []).find((s: KubernetesResource) => s.name === cname);
-  }
-
-  function stateLabel(status: KubernetesResource): string {
-    if (!status) {
-      return "Unknown";
-    }
-    if (status.state?.running) {
-      return "Running";
-    }
-    if (status.state?.waiting) {
-      return `Waiting: ${status.state.waiting.reason ?? ""}`;
-    }
-    if (status.state?.terminated) {
-      return `Terminated: ${status.state.terminated.reason ?? ""}`;
-    }
-    return "Unknown";
-  }
-
-  let sectionOverrides = $state<Record<string, boolean>>({});
-
-  function isSectionOpen(cname: string, section: string): boolean {
-    const key = `${cname}:${section}`;
-    if (key in sectionOverrides) {
-      return sectionOverrides[key];
-    }
-    return section === "resources" || section === "ports";
-  }
-
-  function toggleSection(cname: string, section: string) {
-    const key = `${cname}:${section}`;
-    sectionOverrides = {...sectionOverrides, [key]: !isSectionOpen(cname, section)};
-  }
-
-  let showInitContainers = $state(false);
 
   const finalizers = $derived(getFinalizers(obj));
 </script>
@@ -340,158 +299,9 @@
     </section>
   {/if}
 
-  <!-- Containers card -->
-  {#if hasContainersPanel && containers.length > 0}
-    <section class="bg-surface border border-border rounded-lg p-4">
-      <SectionHeader class="mb-3">Containers</SectionHeader>
-      <div class="flex flex-col gap-3">
-        {#each containers as c}
-          {@const status = containerStatus(c.name)}
-          <div class="bg-bg border border-border rounded-lg p-3">
-            <!-- Header: always visible -->
-            <div class="flex items-center justify-between mb-1">
-              <CopyableValue value={c.name} class="text-sm font-medium" />
-              <div class="flex items-center gap-1.5">
-                {#if status?.restartCount > 0}
-                  <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-600 dark:text-yellow-400">
-                    {status.restartCount}
-                    restart{status.restartCount === 1 ? '' : 's'}
-                  </span>
-                {/if}
-                <StatusBadge status={Boolean(status?.ready)} mode="pill">{stateLabel(status)}</StatusBadge>
-              </div>
-            </div>
-            <CopyableValue value={c.image} class="text-xs font-mono text-muted break-all mb-3" />
-
-            <!-- Accordion sections -->
-            <div class="flex flex-col gap-0.5">
-              <!-- Resources -->
-              {#if c.resources?.requests || c.resources?.limits}
-                <div>
-                  <button
-                    type="button"
-                    onclick={() => toggleSection(c.name, 'resources')}
-                    class="flex items-center gap-1 w-full text-left py-1.5 text-xs font-semibold text-muted uppercase tracking-wide hover:text-fg transition-colors"
-                  >
-                    {isSectionOpen(c.name, 'resources') ? '▾' : '▸'}
-                    Resources
-                  </button>
-                  {#if isSectionOpen(c.name, 'resources')}
-                    <div class="pl-4 pb-2">
-                      <div class="flex flex-wrap gap-2">
-                        {#if c.resources?.requests?.cpu || c.resources?.limits?.cpu}
-                          <div class="flex items-center gap-1.5 text-xs bg-surface border border-border rounded px-2 py-1">
-                            <span class="text-muted">CPU</span>
-                            <span class="font-mono">{c.resources?.requests?.cpu ?? '—'}</span>
-                            <span class="text-muted">/</span>
-                            <span class="font-mono">{c.resources?.limits?.cpu ?? '—'}</span>
-                          </div>
-                        {/if}
-                        {#if c.resources?.requests?.memory || c.resources?.limits?.memory}
-                          <div class="flex items-center gap-1.5 text-xs bg-surface border border-border rounded px-2 py-1">
-                            <span class="text-muted">Mem</span>
-                            <span class="font-mono">{c.resources?.requests?.memory ?? '—'}</span>
-                            <span class="text-muted">/</span>
-                            <span class="font-mono">{c.resources?.limits?.memory ?? '—'}</span>
-                          </div>
-                        {/if}
-                        {#if c.resources?.requests?.['ephemeral-storage'] || c.resources?.limits?.['ephemeral-storage']}
-                          <div class="flex items-center gap-1.5 text-xs bg-surface border border-border rounded px-2 py-1">
-                            <span class="text-muted">Disk</span>
-                            <span class="font-mono">{c.resources?.requests?.['ephemeral-storage'] ?? '—'}</span>
-                            <span class="text-muted">/</span>
-                            <span class="font-mono">{c.resources?.limits?.['ephemeral-storage'] ?? '—'}</span>
-                          </div>
-                        {/if}
-                      </div>
-                      <div class="text-[10px] text-muted mt-1">req / limit</div>
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-
-              <!-- Ports -->
-              {#if c.ports?.length}
-                <div>
-                  <button
-                    type="button"
-                    onclick={() => toggleSection(c.name, 'ports')}
-                    class="flex items-center gap-1 w-full text-left py-1.5 text-xs font-semibold text-muted uppercase tracking-wide hover:text-fg transition-colors"
-                  >
-                    {isSectionOpen(c.name, 'ports') ? '▾' : '▸'}
-                    Ports ({c.ports.length})
-                  </button>
-                  {#if isSectionOpen(c.name, 'ports')}
-                    <div class="pl-4 pb-2 flex flex-wrap gap-1">
-                      {#each c.ports as p}
-                        <PortButton port={p.containerPort} hostPort={p.hostPort} protocol={p.protocol ?? 'TCP'} name={p.name} onclick={() => pfPort = p.containerPort} />
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-
-              <!-- Environment -->
-              {#if c.env?.length}
-                <div>
-                  <button
-                    type="button"
-                    onclick={() => toggleSection(c.name, 'env')}
-                    class="flex items-center gap-1 w-full text-left py-1.5 text-xs font-semibold text-muted uppercase tracking-wide hover:text-fg transition-colors"
-                  >
-                    {isSectionOpen(c.name, 'env') ? '▾' : '▸'}
-                    Environment ({c.env.length})
-                  </button>
-                  {#if isSectionOpen(c.name, 'env')}
-                    <div class="pl-4 pb-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-                      {#each c.env as e}
-                        <CopyableValue value={e.name} class="text-xs font-mono text-accent" />
-                        <CopyableValue
-                          value={e.value ?? (e.valueFrom ? '(from secret/configmap)' : '—')}
-                          class="text-xs font-mono text-muted"
-                        />
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-
-              <!-- Mounts -->
-              {#if c.volumeMounts?.length}
-                <div>
-                  <button
-                    type="button"
-                    onclick={() => toggleSection(c.name, 'mounts')}
-                    class="flex items-center gap-1 w-full text-left py-1.5 text-xs font-semibold text-muted uppercase tracking-wide hover:text-fg transition-colors"
-                  >
-                    {isSectionOpen(c.name, 'mounts') ? '▾' : '▸'}
-                    Mounts ({c.volumeMounts.length})
-                  </button>
-                  {#if isSectionOpen(c.name, 'mounts')}
-                    <div class="pl-4 pb-2 flex flex-col gap-1">
-                      {#each c.volumeMounts as m}
-                        <div class="flex items-center gap-2 text-xs">
-                          <span class="font-mono text-accent">{m.mountPath}</span>
-                          {#if m.name}
-                            <span class="text-muted">← {m.name}</span>
-                          {/if}
-                          {#if m.subPath}
-                            <span class="font-mono text-muted">/{m.subPath}</span>
-                          {/if}
-                          {#if m.readOnly}
-                            <span class="px-1.5 py-0.5 rounded bg-surface border border-border text-muted text-[10px]">RO</span>
-                          {/if}
-                        </div>
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          </div>
-        {/each}
-      </div>
-    </section>
+  <!-- Containers -->
+  {#if hasContainersPanel}
+    <ContainerSections {obj} {onopenresource} {onopencontainer} onforwardport={(p) => (pfPort = p)} />
   {/if}
 
   <!-- Finalizers -->
@@ -506,33 +316,6 @@
     </section>
   {/if}
 
-  <!-- Init containers -->
-  {#if hasContainersPanel && initContainers.length > 0}
-    <section class="bg-surface border border-border rounded-lg p-4">
-      <button
-        type="button"
-        onclick={() => showInitContainers = !showInitContainers}
-        class="text-xs font-semibold text-muted uppercase tracking-wide flex items-center gap-1"
-      >
-        {showInitContainers ? '▾' : '▸'}
-        Init Containers ({initContainers.length})
-      </button>
-      {#if showInitContainers}
-        <div class="flex flex-col gap-2 mt-3">
-          {#each initContainers as c}
-            {@const status = initContainerStatus(c.name)}
-            <div class="bg-bg border border-border rounded-lg p-3">
-              <div class="flex items-center justify-between">
-                <CopyableValue value={c.name} class="text-sm font-medium" />
-                <span class="text-xs px-2 py-0.5 rounded-full bg-surface-hover text-muted">{stateLabel(status)}</span>
-              </div>
-              <p class="text-xs font-mono text-muted truncate mt-1">{c.image}</p>
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </section>
-  {/if}
 </div>
 
 {#if pfPort !== null}

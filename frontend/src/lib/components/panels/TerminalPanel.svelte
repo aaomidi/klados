@@ -18,6 +18,7 @@
     tabId,
     tabKind = "terminal",
     managedId,
+    initialContainer = "",
   }: {
     obj: Record<string, KubernetesResource>;
     ctxName: string;
@@ -26,6 +27,7 @@
     tabId?: string;
     tabKind?: PanelKind;
     managedId?: string;
+    initialContainer?: string;
   } = $props();
 
   // ---- terminal-pending (volume browser) lifecycle ----
@@ -182,6 +184,12 @@
   const shells = ["bash", "sh", "zsh"];
 
   let selectedContainer = $state("");
+
+  $effect(() => {
+    if (initialContainer) {
+      selectedContainer = initialContainer;
+    }
+  });
   let selectedShell = $state("bash");
   let sessions = $state<TermSession[]>([]);
   let activeIdx = $state(0);
