@@ -3,6 +3,8 @@ import {
   groupContainers,
   containerStateInfo,
   lastExit,
+  decodeExitCode,
+  podDiagnosis,
   probeSummaries,
   envSource,
   envFromSources,
@@ -190,5 +192,73 @@ describe("resourceSummary", () => {
   it("returns empty string without resources", () => {
     expect(resourceSummary(undefined)).toBe("");
     expect(resourceSummary({})).toBe("");
+  });
+});
+
+describe("decodeExitCode", () => {
+  it("decodes 137 as OOM when reason says so", () => {
+    expect(decodeExitCode(137, "OOMKilled")).toBe("SIGKILL (out of memory)");
+  });
+  it("decodes 137 generically without reason", () => {
+    expect(decodeExitCode(137)).toBe("SIGKILL — OOM or forced kill");
+  });
+  it("decodes common codes", () => {
+    expect(decodeExitCode(143)).toBe("SIGTERM — graceful shutdown");
+    expect(decodeExitCode(139)).toBe("SIGSEGV — segmentation fault");
+    expect(decodeExitCode(127)).toBe("command not found");
+    expect(decodeExitCode(126)).toBe("command not executable");
+    expect(decodeExitCode(1)).toBe("application error");
+    expect(decodeExitCode(0)).toBe("success");
+  });
+  it("decodes other signals generically", () => {
+    expect(decodeExitCode(130)).toBe("signal 2");
+  });
+  it("falls back to exit N", () => {
+    expect(decodeExitCode(2)).toBe("exit 2");
+  });
+});
+
+describe("podDiagnosis", () => {
+  it("hides for a healthy running pod", () => {
+    const obj = {status: {phase: "Running", containerStatuses: [
+      {name: "app", ready: true, state: {running: {}}},
+    ]}};
+    expect(podDiagnosis(obj).show).toBe(false);
+  });
+  it("hides for a completed pod", () => {
+    const obj = {status: {phase: "Succeeded", containerStatuses: [
+      {name: "app", ready: false, state: {terminated: {reason: "Completed", exitCode: 0}}},
+    ]}};
+    expect(podDiagnosis(obj).show).toBe(false);
+  });
+  it("shows pod-level eviction reason and message", () => {
+    const obj = {status: {phase: "Failed", reason: "Evicted", message: "low on memory"}};
+    const d = podDiagnosis(obj);
+    expect(d.show).toBe(true);
+    expect(d.reason).toBe("Evicted");
+    expect(d.message).toBe("low on memory");
+  });
+  it("counts unhealthy containers", () => {
+    const obj = {status: {phase: "Running", containerStatuses: [
+      {name: "app", ready: false, state: {waiting: {reason: "CrashLoopBackOff"}}},
+      {name: "side", ready: true, state: {running: {}}},
+    ]}};
+    const d = podDiagnosis(obj);
+    expect(d.show).toBe(true);
+    expect(d.unhealthy).toBe(1);
+    expect(d.total).toBe(2);
+  });
+  it("ignores ContainerCreating as unhealthy", () => {
+    const obj = {status: {phase: "Pending", containerStatuses: [
+      {name: "app", ready: false, state: {waiting: {reason: "ContainerCreating"}}},
+    ]}};
+    expect(podDiagnosis(obj).show).toBe(false);
+  });
+  it("skips native sidecars but flags failed init", () => {
+    const obj = {status: {phase: "Pending", initContainerStatuses: [
+      {name: "proxy", started: true, ready: true, state: {running: {}}},
+      {name: "migrate", state: {terminated: {reason: "Error", exitCode: 1}}},
+    ]}};
+    expect(podDiagnosis(obj).show).toBe(true);
   });
 });

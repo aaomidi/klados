@@ -150,3 +150,56 @@ export function resourceSummary(resources: KubernetesResource | undefined): stri
   pair("Disk", "ephemeral-storage");
   return parts.join(" · ");
 }
+
+export function decodeExitCode(code: number, reason?: string): string {
+  switch (code) {
+    case 0:
+      return "success";
+    case 1:
+      return "application error";
+    case 126:
+      return "command not executable";
+    case 127:
+      return "command not found";
+    case 137:
+      return reason === "OOMKilled" ? "SIGKILL (out of memory)" : "SIGKILL — OOM or forced kill";
+    case 139:
+      return "SIGSEGV — segmentation fault";
+    case 143:
+      return "SIGTERM — graceful shutdown";
+  }
+  if (code > 128 && code < 165) return `signal ${code - 128}`;
+  return `exit ${code}`;
+}
+
+export interface PodDiagnosis {
+  show: boolean;
+  reason?: string;
+  message?: string;
+  unhealthy: number;
+  total: number;
+}
+
+function isContainerUnhealthy(cs: KubernetesResource): boolean {
+  const w = cs.state?.waiting;
+  if (w?.reason && w.reason !== "ContainerCreating" && w.reason !== "PodInitializing") return true;
+  const t = cs.state?.terminated;
+  if (t && (t.exitCode ?? 0) !== 0) return true;
+  return false;
+}
+
+export function podDiagnosis(obj: KubernetesResource | undefined): PodDiagnosis {
+  const status = obj?.status ?? {};
+  const statuses: KubernetesResource[] = status.containerStatuses ?? [];
+  const initStatuses: KubernetesResource[] = status.initContainerStatuses ?? [];
+  let unhealthy = 0;
+  for (const cs of statuses) if (isContainerUnhealthy(cs)) unhealthy++;
+  let initFailed = false;
+  for (const cs of initStatuses) {
+    if (cs.started && cs.ready) continue; // native sidecar
+    if (isContainerUnhealthy(cs)) initFailed = true;
+  }
+  const reason: string | undefined = status.reason;
+  const show = Boolean(reason) || unhealthy > 0 || initFailed;
+  return {show, reason, message: status.message, unhealthy, total: statuses.length};
+}
