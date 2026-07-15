@@ -38,13 +38,8 @@ func (e *PodEnricher) Enrich(_ string, obj *unstructured.Unstructured) error {
 		total = len(specContainers)
 	}
 
-	phase, _, _ := unstructured.NestedString(obj.Object, "status", "phase")
-	if phase == "" {
-		phase = "Unknown"
-	}
-
 	_ = unstructured.SetNestedField(obj.Object, fmt.Sprintf("%d/%d", ready, total), "status", "readyDisplay")
 	_ = unstructured.SetNestedField(obj.Object, restarts, "status", "restartCount")
-	_ = unstructured.SetNestedField(obj.Object, phase, "status", "statusDisplay")
+	_ = unstructured.SetNestedField(obj.Object, computePodStatus(obj), "status", "statusDisplay")
 	return nil
 }
