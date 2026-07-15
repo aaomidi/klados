@@ -24,6 +24,7 @@
   import EventsPanel from "./panels/EventsPanel.svelte";
   import LabelsAnnotationsPanel from "./panels/LabelsAnnotationsPanel.svelte";
   import ContainersPanel from "./panels/ContainersPanel.svelte";
+  import PodDiagnosisBanner from "./panels/PodDiagnosisBanner.svelte";
   import DeploymentPanel from "./panels/DeploymentPanel.svelte";
   import LogsPanel from "./panels/LogsPanel.svelte";
   import TerminalPanel from "./panels/TerminalPanel.svelte";
@@ -238,6 +239,11 @@
 
   <!-- Validation warnings -->
   <ValidationWarningBanner {obj} />
+
+  <!-- Pod failure diagnosis -->
+  {#if gvr === 'core.v1.pods'}
+    <PodDiagnosisBanner {obj} {ctxName} {namespace} {uid} setActivePanel={(p) => (activePanel = p)} />
+  {/if}
 
   <!-- Panel tab bar -->
   <div class="flex items-center border-b border-border bg-surface shrink-0 overflow-x-auto">
