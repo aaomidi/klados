@@ -6,6 +6,7 @@
   import {
     containerStateInfo,
     lastExit,
+    decodeExitCode,
     probeSummaries,
     envSource,
     envFromSources,
@@ -71,8 +72,13 @@
           restart{status.restartCount === 1 ? '' : 's'}
         </span>
       {/if}
-      <StatusBadge status={Boolean(status?.ready) || (info.kind === 'terminated' && info.exitCode === 0)} mode="pill">
-        {info.label}{info.kind === 'terminated' && info.exitCode !== undefined ? ` (exit ${info.exitCode})` : ''}
+      <StatusBadge
+        status={Boolean(status?.ready) || (info.kind === 'terminated' && info.exitCode === 0)}
+        mode="pill"
+      >
+        {info.label}{info.kind === 'terminated' && info.exitCode !== undefined
+          ? ` (exit ${info.exitCode} · ${decodeExitCode(info.exitCode, info.label)})`
+          : ''}
       </StatusBadge>
       {#if onopencontainer}
         <button
@@ -108,7 +114,9 @@
   <!-- Crash forensics -->
   {#if lx}
     <p class="text-xs mt-1.5 text-destructive" title={absoluteTime(lx.finishedAt)}>
-      Last exit: {lx.reason} (exit {lx.exitCode}){lx.finishedAt ? ` · ${formatAge(lx.finishedAt)} ago` : ''}
+      Last exit: {lx.reason} (exit {lx.exitCode} · {decodeExitCode(lx.exitCode, lx.reason)}){lx.finishedAt
+        ? ` · ${formatAge(lx.finishedAt)} ago`
+        : ''}
     </p>
   {/if}
 

@@ -41,7 +41,7 @@ describe("ContainerCard", () => {
     render(ContainerCard, {props: {container: runningContainer, status}});
     expect(screen.getByText("CrashLoopBackOff")).toBeTruthy();
     expect(screen.getByText(/back-off 5m0s restarting failed container/)).toBeTruthy();
-    expect(screen.getByText(/Last exit: OOMKilled \(exit 137\)/)).toBeTruthy();
+    expect(screen.getByText(/Last exit: OOMKilled \(exit 137 · SIGKILL \(out of memory\)\)/)).toBeTruthy();
     expect(screen.getByText(/7 restarts/)).toBeTruthy();
   });
 
@@ -116,7 +116,7 @@ describe("ContainerCard", () => {
     render(ContainerCard, {
       props: {container: {name: "migrate", image: "migrator:2"}, status, compact: true},
     });
-    expect(screen.getByText(/Completed \(exit 0\)/)).toBeTruthy();
+    expect(screen.getByText(/Completed \(exit 0 · success\)/)).toBeTruthy();
     expect(screen.queryByText(/env vars/)).toBeNull();
   });
 });
