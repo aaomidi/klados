@@ -2,7 +2,7 @@ import {describe, it, expect, vi, beforeEach} from "vitest";
 import {render} from "@testing-library/svelte";
 import PodDiagnosisBanner from "$lib/components/panels/PodDiagnosisBanner.svelte";
 
-vi.mock("../../../bindings/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
+vi.mock("$api/github.com/Vilsol/klados/internal/services/resourceservice.js", () => ({
   GetEvents: vi.fn(() => Promise.resolve([])),
   StartWatch: vi.fn(() => Promise.resolve()),
   StopWatch: vi.fn(() => Promise.resolve()),
